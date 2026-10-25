@@ -1,0 +1,20 @@
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Recipe sources (personal diet plans), reference printouts and the generated database
+przepisy/
+referencja/
+data/
+
+# Claude Code skill link (junction/symlink to .agents/skills, recreated per machine - see README)
+.claude/skills/przepisnik
+
+# Temporary files written by the store
+*.tmp
