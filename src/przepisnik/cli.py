@@ -8,6 +8,7 @@ import io
 import json
 import logging
 import os
+import sqlite3
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -30,6 +31,8 @@ from przepisnik.core.models import (
     DraftItem,
     ImageData,
     MealType,
+    Recipe,
+    UserMetadata,
     VariantKind,
 )
 from przepisnik.core.recipes import RecipeFilters, select_recipes, transfer_variant, update_metadata
@@ -61,7 +64,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except PrzepisnikError as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return EXIT_ERROR
-    except (ValidationError, OSError, ValueError) as exc:
+    except (ValidationError, OSError, ValueError, sqlite3.Error) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return EXIT_ERROR
 
@@ -105,13 +108,20 @@ def _build_parser() -> argparse.ArgumentParser:
     dump_cmd.add_argument("--last-page", type=int, default=None)
     dump_cmd.set_defaults(handler=_cmd_dump_text)
 
-    schema_cmd = commands.add_parser("schema", help="Print the JSON schema of a draft file.")
+    schema_cmd = commands.add_parser(
+        "schema", help="Print a JSON schema for drafts, recipes or metadata."
+    )
+    schema_cmd.add_argument("--kind", choices=("draft", "recipe", "metadata"), default="draft")
     schema_cmd.set_defaults(handler=_cmd_schema)
     migrate_cmd = commands.add_parser(
         "migrate-json", help="Copy legacy JSON into SQLite, preserving originals."
     )
     migrate_cmd.add_argument("--dry-run", action="store_true")
     migrate_cmd.set_defaults(handler=_cmd_migrate)
+    check_cmd = commands.add_parser(
+        "check-data", help="Validate stored recipes, image references and database integrity."
+    )
+    check_cmd.set_defaults(handler=_cmd_check_data)
     _add_recipe_commands(commands)
     return parser
 
@@ -179,9 +189,39 @@ def _cmd_dump_text(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _cmd_schema(_args: argparse.Namespace) -> int:
-    print(json.dumps(_DRAFTS_ADAPTER.json_schema(), indent=2, ensure_ascii=False))
+def _cmd_schema(args: argparse.Namespace) -> int:
+    schemas = {
+        "draft": _DRAFTS_ADAPTER.json_schema(),
+        "recipe": Recipe.model_json_schema(),
+        "metadata": UserMetadata.model_json_schema(),
+    }
+    print(json.dumps(schemas[args.kind], indent=2, ensure_ascii=False))
     return EXIT_OK
+
+
+def _cmd_check_data(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir, read_only=True) as store:
+        with store.transaction():
+            errors = store.integrity_errors()
+            recipes = store.all()
+            missing_images = [
+                recipe.id
+                for recipe in recipes
+                if recipe.image is not None
+                and not (args.data_dir / "recipes" / recipe.id / recipe.image).is_file()
+            ]
+        print(
+            json.dumps(
+                {
+                    "recipes": len(recipes),
+                    "variants": sum(len(r.variants) for r in recipes),
+                    "errors": errors,
+                    "missing_images": missing_images,
+                }
+            )
+        )
+    return EXIT_ERROR if errors or missing_images else EXIT_OK
 
 
 def _run_import(
@@ -195,13 +235,16 @@ def _run_import(
 
 
 def _require_migrated(data_dir: Path) -> None:
-    if not (data_dir / DATABASE_NAME).exists() and any(
-        (data_dir / "recipes").glob("*/recipe.json")
-    ):
-        raise StoreError(
-            "Legacy JSON found; run 'przepisnik migrate-json --dry-run', "
-            "then 'przepisnik migrate-json' first"
-        )
+    if not any((data_dir / "recipes").glob("*/recipe.json")):
+        return
+    if (data_dir / DATABASE_NAME).exists():
+        with SqliteStore(data_dir, read_only=True) as store:
+            if store.legacy_migrated():
+                return
+    raise StoreError(
+        "Legacy JSON found; run 'przepisnik migrate-json --dry-run', "
+        "then 'przepisnik migrate-json' first"
+    )
 
 
 def _cmd_migrate(args: argparse.Namespace) -> int:

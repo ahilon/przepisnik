@@ -43,6 +43,7 @@ CREATE TABLE imported_items (
     PRIMARY KEY(source_key, fingerprint, original_variant)
 );
 CREATE INDEX imported_content ON imported_items(fingerprint, original_variant);
+CREATE TABLE app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 PRAGMA user_version = 1;
 """
 IMAGE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "webp", "gif", "bmp"})
@@ -111,6 +112,19 @@ class SqliteStore:
             for row in self._connection.execute("SELECT payload FROM recipes ORDER BY id")
         ]
 
+    def integrity_errors(self) -> list[str]:
+        """Check SQLite structures and foreign keys without changing data."""
+        errors = [
+            str(row[0])
+            for row in self._connection.execute("PRAGMA integrity_check")
+            if row[0] != "ok"
+        ]
+        errors.extend(
+            f"Foreign key violation: {row}"
+            for row in self._connection.execute("PRAGMA foreign_key_check")
+        )
+        return errors
+
     def versions(self, title: str) -> list[Recipe]:
         """Find all versions by current title, independent of their stable IDs."""
         rows = self._connection.execute(
@@ -124,7 +138,7 @@ class SqliteStore:
         now = utc_now()
         changes: dict[str, object] = {
             "updated_at": now,
-            "created_at": current.created_at if current else recipe.created_at or now,
+            "created_at": (current.created_at if current else recipe.created_at) or now,
         }
         if image is not None:
             changes["image"] = self._save_image(recipe.id, image)
@@ -170,6 +184,21 @@ class SqliteStore:
             (source_key, fingerprint, kind.value, recipe_id),
         )
 
+    def legacy_migrated(self) -> bool:
+        """Return whether legacy migration completed successfully."""
+        return (
+            self._connection.execute(
+                "SELECT 1 FROM app_state WHERE key = 'legacy_migrated'"
+            ).fetchone()
+            is not None
+        )
+
+    def mark_legacy_migrated(self) -> None:
+        """Mark completion inside the same transaction as migrated recipes."""
+        self._connection.execute(
+            "INSERT OR IGNORE INTO app_state(key, value) VALUES ('legacy_migrated', '1')"
+        )
+
     def _save_image(self, recipe_id: str, image: ImageData) -> str:
         extension = image.extension.lower()
         if extension not in IMAGE_EXTENSIONS:
@@ -179,7 +208,12 @@ class SqliteStore:
         directory = self.data_dir / "recipes" / recipe_id
         directory.mkdir(parents=True, exist_ok=True)
         # Content-addressed files never overwrite a photo referenced by committed data.
-        (directory / name).write_bytes(image.content)
+        path = directory / name
+        if path.exists():
+            if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                raise StoreError(f"Stored image is corrupted: {path}")
+        else:
+            path.write_bytes(image.content)
         return name
 
     @staticmethod

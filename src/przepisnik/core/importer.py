@@ -15,13 +15,13 @@ from pydantic import BaseModel, Field
 
 from przepisnik.core.identity import draft_fingerprint
 from przepisnik.core.merge import MergeOutcome, merge_variant
-from przepisnik.core.models import ImportedSource, Recipe, Source, VariantKind, slugify
+from przepisnik.core.models import ImportedSource, Recipe, RecipeDraft, Source, VariantKind, slugify
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from contextlib import AbstractContextManager
 
-    from przepisnik.core.models import ImageData, RecipeDraft
+    from przepisnik.core.models import ImageData
 
 
 class RecipeStore(Protocol):
@@ -105,6 +105,8 @@ class Conflict(BaseModel):
     title: str
     page: int | None
     reason: str
+    candidate_ids: list[str] = Field(default_factory=list)
+    incoming: RecipeDraft
 
 
 class ImportReport(BaseModel):
@@ -164,6 +166,7 @@ class RecipeImporter:
         counts: Counter[MergeOutcome] = Counter()
         enriched_meals: list[str] = []
         consumed: dict[str, str] = {}
+        created_ids: set[str] = set()
         conflicts: list[Conflict] = []
         for item in recipes:
             fingerprint = draft_fingerprint(item.draft)
@@ -173,6 +176,13 @@ class RecipeImporter:
                 if recipe is not None:
                     counts[MergeOutcome.UNCHANGED] += 1
                     recipe = self._enrich(recipe, item.draft, options, enriched_meals)
+                    if recipe.id in created_ids:
+                        recipe = self._enrich(
+                            recipe,
+                            item.draft,
+                            ImportOptions(dry_run=options.dry_run, enrich_meals=True),
+                            enriched_meals,
+                        )
                     pending[recipe.id] = recipe
                     if not options.dry_run:
                         self._store.remember(origin.key, fingerprint, kind, recipe.id)
@@ -197,10 +207,14 @@ class RecipeImporter:
                         title=item.draft.title,
                         page=item.page,
                         reason=result.reason or "",
+                        candidate_ids=[recipe.id for recipe in versions],
+                        incoming=item.draft,
                     )
                 )
                 continue
             recipe = result.recipe
+            if result.outcome is MergeOutcome.CREATED:
+                created_ids.add(recipe.id)
             if result.outcome is not MergeOutcome.UNCHANGED and not options.dry_run:
                 recipe = self._store.save(recipe, item.image if recipe.image is None else None)
             recipe = self._enrich(recipe, item.draft, options, enriched_meals)

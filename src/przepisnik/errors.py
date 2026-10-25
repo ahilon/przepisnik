@@ -13,10 +13,6 @@ class UnsupportedSourceError(PrzepisnikError):
     """No parser recognised the source document."""
 
 
-class SourceAlreadyImportedError(PrzepisnikError):
-    """The same source file (by content hash) was imported before."""
-
-
 class StoreError(PrzepisnikError):
     """The recipe store contains invalid data or cannot be written."""
 

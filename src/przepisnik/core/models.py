@@ -7,13 +7,24 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Final, Literal
+from typing import Annotated, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeFloat, PositiveInt, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeFloat,
+    PositiveInt,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 SCHEMA_VERSION: Final = 2
 RECIPE_ID_PATTERN = r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
 AGENT_PARSER = "agent"
+NonEmptyText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class VariantKind(StrEnum):
@@ -77,10 +88,19 @@ class UserMetadata(_Model):
 
     favorite: bool = False
     notes: str = ""
-    tags: list[str] = Field(default_factory=list)
+    tags: list[NonEmptyText] = Field(default_factory=list)
     meal_types: list[MealType] | None = None
     dish_types: list[DishType] | None = None
     preparation_minutes: PositiveInt | None = None
+
+    @field_validator("tags")
+    @classmethod
+    def unique_tags(cls, value: list[str]) -> list[str]:
+        """Keep the first spelling of each case-insensitive tag."""
+        unique: dict[str, str] = {}
+        for tag in value:
+            unique.setdefault(tag.casefold(), tag)
+        return list(unique.values())
 
 
 class Nutrition(_Model):
@@ -95,13 +115,20 @@ class Nutrition(_Model):
 class Ingredient(_Model):
     """Single ingredient line, parsed into household and metric quantities."""
 
-    name: str = Field(min_length=1)
+    name: NonEmptyText
     amount: NonNegativeFloat | None = Field(default=None, description="Household amount, e.g. 1.5.")
     unit: str | None = Field(default=None, description="Household unit, e.g. 'łyżki'.")
     metric_amount: NonNegativeFloat | None = Field(default=None, description="Weight or volume.")
     metric_unit: Literal["g", "ml"] | None = None
     group: str | None = Field(default=None, description="Sub-list name, e.g. 'Do podania'.")
     raw: str | None = Field(default=None, description="Original ingredient text.")
+
+    @model_validator(mode="after")
+    def paired_metric(self) -> Ingredient:
+        """Require a metric amount and unit together."""
+        if (self.metric_amount is None) != (self.metric_unit is None):
+            raise ValueError("metric_amount and metric_unit must be provided together")
+        return self
 
 
 class Source(_Model):
@@ -132,8 +159,10 @@ class VariantData(_Model):
 class Variant(VariantData):
     """Stored recipe variant with its provenance."""
 
-    steps: list[str] | None = Field(
-        default=None, description="Variant-specific steps; None means the recipe steps apply."
+    steps: list[NonEmptyText] | None = Field(
+        default=None,
+        min_length=1,
+        description="Variant-specific steps; None means the recipe steps apply.",
     )
     source: Source | None = None
 
@@ -141,8 +170,8 @@ class Variant(VariantData):
 class RecipeDraft(_Model):
     """Recipe extracted from one source, before it is merged into the store."""
 
-    title: str = Field(min_length=1)
-    steps: list[str] = Field(min_length=1)
+    title: NonEmptyText
+    steps: list[NonEmptyText] = Field(min_length=1)
     notes: list[str] = Field(default_factory=list)
     meal_types: list[MealType] = Field(default_factory=list)
     dish_types: list[DishType] = Field(default_factory=list)
@@ -162,7 +191,7 @@ class DraftItem(RecipeDraft):
     image_file: str | None = Field(
         default=None, description="Path to the dish photo, relative to the draft file."
     )
-    page: int | None = Field(default=None, description="Page of the source document.")
+    page: PositiveInt | None = Field(default=None, description="Page of the source document.")
 
 
 class Recipe(_Model):
@@ -170,20 +199,28 @@ class Recipe(_Model):
 
     schema_version: Literal[2] = SCHEMA_VERSION
     id: str = Field(pattern=RECIPE_ID_PATTERN)
-    title: str = Field(min_length=1)
+    title: NonEmptyText
     version: PositiveInt = Field(
         default=1, description="Distinguishes different recipes sharing the same title."
     )
     image: str | None = Field(default=None, description="Image file name in the recipe folder.")
-    steps: list[str] = Field(min_length=1)
+    steps: list[NonEmptyText] = Field(min_length=1)
     notes: list[str] = Field(default_factory=list)
     meal_types: list[MealType] = Field(default_factory=list)
     dish_types: list[DishType] = Field(default_factory=list)
     user: UserMetadata = Field(default_factory=UserMetadata)
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    created_at: AwareDatetime | None = None
+    updated_at: AwareDatetime | None = None
     suggested_batch_portions: int | None = Field(default=None, ge=2)
     variants: dict[VariantKind, Variant] = Field(min_length=1)
+
+    @field_validator("image")
+    @classmethod
+    def image_basename(cls, value: str | None) -> str | None:
+        """Keep image references local to their recipe directory."""
+        if value is not None and (not value or value in {".", ".."} or re.search(r"[/\\:]", value)):
+            raise ValueError("image must be a file name without directory components")
+        return value
 
     @model_validator(mode="before")
     @classmethod
@@ -216,8 +253,8 @@ class ImportedSource(_Model):
     name: str
     parser: str
     variant: VariantKind
-    imported_at: datetime
-    recipe_count: int
+    imported_at: AwareDatetime
+    recipe_count: int = Field(ge=0)
 
 
 def utc_now() -> datetime:

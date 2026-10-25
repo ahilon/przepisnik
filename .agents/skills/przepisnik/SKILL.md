@@ -1,6 +1,6 @@
 ---
 name: przepisnik
-description: Imports recipes from diet-plan PDFs, websites, text and photos into this project's SQLite database through the przepisnik CLI. Use for "dodaj przepis", "zaimportuj PDF", "wyciągnij przepisy" or rescanning recipe sources. Do not use for editing existing recipes, favorites or variant assignments; use przepisnik-manage instead.
+description: Imports recipes from diet-plan PDFs, websites, text and photos into this project's SQLite database through the przepisnik CLI. Use when the user says "dodaj przepis", "zaimportuj PDF", "wyciągnij przepisy" or wants to rescan recipe sources. Do not use for editing existing recipes, favorites or variant assignments; use przepisnik-manage instead.
 ---
 
 # Przepisnik - recipe import
@@ -15,11 +15,12 @@ compares and commits imports transactionally. Code development is a separate tas
 Talk to the user in Polish. Recipe content (titles, ingredients, steps) stays in the
 source language; JSON keys are English.
 
-## Variants - always ask
+## Variant assignment
 
 Each source is one variant: `male` (Mężczyzna), `female` (Kobieta), `family` (Rodzina -
 whole cake, bread, pot; set `servings` accordingly). Ask only when the variant has not
-already been specified for that source in the conversation. Never infer it from a person's name or greeting; you may show hints
+already been specified for that source in the conversation. Never infer it from a
+person's name or greeting; you may show hints
 (greeting line, daily kcal) to help them decide.
 
 ## Workflow
@@ -27,13 +28,15 @@ already been specified for that source in the conversation. Never infer it from 
 1. **Detect:** `uv run przepisnik detect <file>`.
    If the CLI reports legacy JSON, run `uv run przepisnik migrate-json --dry-run`,
    inspect the result, then `uv run przepisnik migrate-json`. Originals are retained.
+   These commands migrate legacy JSON, not an existing 1.1.0 SQLite database. If a
+   database upgrade is missing, report it; never delete or rebuild the database.
 2. **Ask** for the variant (see above).
 3. **Built-in parser found** (e.g. `respo`):
    `uv run przepisnik import <file> --variant <v> --dry-run`, show the summary, then run
    without `--dry-run`.
 4. **No parser** (website, own recipe, photo, other PDF) - you are the parser:
-   - Read the source: WebFetch for URLs, `uv run przepisnik dump-text <pdf>` for PDFs
-     (use `--first-page/--last-page` to limit output), Read for images and text files.
+   - Read the source with available web tools for URLs, `uv run przepisnik dump-text <pdf>`
+     for PDFs (use `--first-page/--last-page` to limit output), and file/image tools otherwise.
    - Get the format once: `uv run przepisnik schema`.
    - Write a draft file (JSON list of recipes) in the scratchpad/temp directory.
    - `uv run przepisnik add <drafts.json> --variant <v> (--source <file> | --url <url>) --dry-run`,
