@@ -15,6 +15,7 @@ data/
 
 # Claude Code skill link (junction/symlink to .agents/skills, recreated per machine - see README)
 .claude/skills/przepisnik
+.claude/skills/przepisnik-manage
 
 # Temporary files written by the store
 *.tmp

@@ -59,4 +59,5 @@ def migrate_json(data_dir: Path, *, dry_run: bool = False) -> dict[str, int]:
             for entry in sources.values():
                 if store.find(entry.key) is None:
                     store.register(entry)
+            store.mark_legacy_migrated()
     return counts
