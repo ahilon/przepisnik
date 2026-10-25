@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#274d39">
+  <title>Przepiśnik · Twoja kuchnia</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Filtry przepisów">
+      <a class="brand" href="/" aria-label="Przepiśnik — strona główna"><span class="brand-icon" aria-hidden="true">P.</span>przepiśnik</a>
+      <p class="eyebrow">TWOJA KOLEKCJA</p>
+      <nav class="collection" aria-label="Kolekcje">
+        <button class="collection-item selected" data-collection="all"><span>Wszystkie przepisy</span><span id="count-all" class="count">—</span></button>
+        <button class="collection-item" data-collection="favorites"><span>♡ Ulubione</span><span id="count-favorites" class="count">—</span></button>
+        <button class="collection-item" data-collection="uncategorized"><span>Bez pory posiłku</span><span id="count-uncategorized" class="count">—</span></button>
+      </nav>
+      <form id="filters">
+        <label for="variant">Dla kogo gotujesz?</label>
+        <select id="variant" name="variant"><option value="">Wszystkie warianty</option><option value="female">Kobieta</option><option value="male">Mężczyzna</option><option value="family">Rodzina</option></select>
+        <label for="dish">Rodzaj potrawy</label>
+        <select id="dish" name="dish"><option value="">Wszystkie rodzaje</option><option value="main">Danie główne</option><option value="soup">Zupa</option><option value="salad">Sałatka</option><option value="cake">Ciasto</option><option value="bread">Chleb</option><option value="dessert">Deser</option><option value="other">Inne</option></select>
+        <label for="tag">Tag</label>
+        <select id="tag" name="tag"><option value="">Wszystkie tagi</option></select>
+        <button class="reset" type="button" id="reset">Wyczyść filtry <span aria-hidden="true">↗</span></button>
+      </form>
+      <div class="sidebar-note"><span class="status-dot"></span> Twoja kolekcja, zawsze pod ręką.<br><span>Wybierz coś dobrego na dziś.</span></div>
+    </aside>
+    <main id="main">
+      <header class="topbar"><span>DOMOWA KSIĄŻKA KUCHARSKA</span><span class="local-badge">Twoja kuchnia</span></header>
+      <section class="intro">
+        <p class="eyebrow">CODZIENNE GOTOWANIE, PO SWOJEMU</p>
+        <h1>Na co masz dziś ochotę?</h1>
+        <p>Sprawdzone przepisy. Mniej szukania, więcej gotowania.</p>
+      </section>
+      <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="search" type="search" aria-label="Szukaj po nazwie lub składniku" placeholder="Znajdź przepis lub składnik…" autocomplete="off"><kbd aria-hidden="true">/</kbd></div>
+      <nav class="meal-tabs" aria-label="Pora posiłku">
+        <button class="active" data-meal="" aria-pressed="true">Wszystko</button>
+        <button data-meal="breakfast" aria-pressed="false">Śniadania</button>
+        <button data-meal="lunch" aria-pressed="false">Obiady</button>
+        <button data-meal="dinner" aria-pressed="false">Kolacje</button>
+        <button data-meal="snack" aria-pressed="false">Przekąski</button>
+      </nav>
+      <div class="results-heading"><h2 id="collection-title">Wszystkie przepisy</h2><span id="result-count" aria-live="polite">Wczytywanie…</span></div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <section id="grid" class="recipe-grid" aria-label="Przepisy" aria-busy="true"></section>
+      <section id="empty" class="empty" hidden><span aria-hidden="true">⌕</span><h2>Jeszcze nic tu nie znaleźliśmy</h2><p>Spróbuj innego składnika albo usuń część filtrów.</p><button id="empty-reset" class="primary">Wyczyść filtry</button></section>
+      <nav id="pagination" class="pagination" aria-label="Strony przepisów" hidden><button id="previous">← Poprzednia</button><span id="page-label"></span><button id="next">Następna →</button></nav>
+      <footer>Dobry dzień zaczyna się w kuchni. <span>Smacznego!</span></footer>
+    </main>
+  </div>
+  <dialog id="detail" aria-labelledby="detail-title"><button id="close-detail" class="close" aria-label="Zamknij szczegóły">×</button><div id="detail-content"></div></dialog>
+</body>
+</html>

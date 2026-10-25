@@ -2,14 +2,16 @@
 
 Recipe knowledge base built from diet-plan PDFs, recipe websites and own recipes.
 Every source is validated against a shared Pydantic schema and stored in SQLite.
-The CLI and project skills share the same application operations; a web UI is planned.
+The CLI, project skills and local recipe browser share the same application operations.
 
 ## Version status
 
-The merged baseline is **1.1.0**. The current working tree targets **1.2.0**, which
-is not released. See [CHANGELOG.md](CHANGELOG.md) for each version's scope and
-outstanding release work. Package versions are independent of recipe document
-and SQLite schema versions.
+The current work targets **1.3.0**: a local recipe browser with photo cards,
+search, filters, pagination and recipe details with variant switching.
+Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
+SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
+Version 1.3.0 is not released; package metadata still declares 1.2.0.
+Package versions are independent of recipe document and SQLite schema versions.
 
 ## Setup
 
@@ -60,6 +62,28 @@ Create a separate backup of JSON and images before migration. Migration itself d
 not create a backup archive.
 
 ## Usage
+
+### Local recipe browser (1.3.0)
+
+```bash
+uv run przepisnik serve
+```
+
+Open **http://localhost:8000** in your browser. Stop the server with `Ctrl+C`.
+Use `serve --port 8080` to choose another port, or the global `--data-dir` option
+to browse a different database. The server binds only to the local computer.
+
+The Polish interface provides recipe photos, search by name or ingredient, combined
+meal/dish/variant/tag filters, favorites, uncategorized recipes and pagination.
+Open a card for ingredients, preparation, nutrition, notes and source details;
+switch variants without modifying stored data. Filters are preserved in the URL.
+The layout adapts to smaller screens. Editing and favorite toggles in the UI are
+planned separately; this browser only reads the database.
+
+The application uses Python's standard HTTP server and bundled HTML/CSS/JavaScript,
+with no frontend build or additional dependencies.
+
+### Command line
 
 ```bash
 uv run przepisnik detect "przepisy/Dieta (1).pdf"                 # which parser handles it
@@ -160,7 +184,7 @@ both amount and unit, and empty titles, steps or tags are rejected.
 
 Variant moves/copies never scale ingredients or nutrition and refuse an occupied target.
 The shared operations accept `expected_updated_at` for optimistic concurrency in the
-future UI. Bulk editing and the web interface are not implemented yet.
+future editing UI. Bulk editing and web-based editing are not implemented yet.
 
 ## Export and backups
 
@@ -182,6 +206,7 @@ incoming draft for review with `recipes show`.
   `parsers/registry.py`. Other sources are extracted by the agent skill
   (`.agents/skills/przepisnik`) and added with `przepisnik add`.
 - `adapters/` - file format readers (PDF via PyMuPDF).
+- `web/` - local HTTP routes and bundled interface; reads use the same store and filters.
 
 ## Development
 

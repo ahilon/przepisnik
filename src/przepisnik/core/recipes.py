@@ -23,6 +23,8 @@ class RecipeFilters:
     dish: DishType | None = None
     variant: VariantKind | None = None
     favorite: bool = False
+    tag: str = ""
+    uncategorized: bool = False
 
 
 def select_recipes(recipes: list[Recipe], filters: RecipeFilters) -> list[Recipe]:
@@ -35,6 +37,8 @@ def select_recipes(recipes: list[Recipe], filters: RecipeFilters) -> list[Recipe
         and (filters.dish is None or filters.dish in recipe.effective_dish_types)
         and (filters.variant is None or filters.variant in recipe.variants)
         and (not filters.favorite or recipe.user.favorite)
+        and (not filters.tag or filters.tag in recipe.user.tags)
+        and (not filters.uncategorized or not recipe.effective_meal_types)
         and (
             not needle
             or needle in slugify(recipe.title)
