@@ -19,6 +19,7 @@ from pydantic import ValidationError
 
 from przepisnik.adapters.pdf import PdfDocument
 from przepisnik.core.importer import ExtractedRecipe
+from przepisnik.core.meals import classify_meal
 from przepisnik.core.models import Ingredient, Nutrition, RecipeDraft, VariantData
 from przepisnik.errors import SourceReadError
 from przepisnik.parsers.base import ParseResult
@@ -121,6 +122,16 @@ class RespoParser:
             except (RespoFormatError, ValidationError) as exc:
                 warnings.append(f"page {header.page}: skipped recipe block ({exc})")
                 continue
+            classification = classify_meal(header.text)
+            draft = draft.model_copy(
+                update={
+                    "meal_types": [classification.meal_type] if classification.meal_type else [],
+                    "meal_label": header.text,
+                    "meal_type_basis": classification.basis,
+                }
+            )
+            if classification.meal_type is None:
+                warnings.append(f"page {header.page}: meal type unknown for {header.text!r}")
             image_ref = _take_nearest_image(images, header)
             image = document.extract_image(image_ref) if image_ref else None
             if image is None:

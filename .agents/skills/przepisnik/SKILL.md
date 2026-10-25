@@ -1,13 +1,14 @@
 ---
 name: przepisnik
-description: Builds the recipe knowledge base of this repository - extracts recipes (title, nutrition, ingredients, steps, dish photo) from diet-plan PDFs (Respo), recipe websites (e.g. aniagotuje.pl), own recipes or photos of recipes, and stores them as JSON with male/female/family variants. Use when the user wants to add, import or extract recipes into the database ("dodaj przepis", "zaimportuj PDF", "wyciągnij przepisy").
+description: Imports recipes from diet-plan PDFs, websites, text and photos into this project's SQLite database through the przepisnik CLI. Use for "dodaj przepis", "zaimportuj PDF", "wyciągnij przepisy" or rescanning recipe sources. Do not use for editing existing recipes, favorites or variant assignments; use przepisnik-manage instead.
 ---
 
 # Przepisnik - recipe import
 
-Every source ends up in the same JSON store, always through the `przepisnik` CLI
+Every source ends up in the same SQLite database, always through the `przepisnik` CLI
 (run from the repository root with `uv run przepisnik ...`). Never write or edit files in
-`data/` directly - the CLI validates, merges variants and versions.
+`data/` directly. Never write SQL or ad hoc Python to modify recipes. The CLI validates,
+compares and commits imports transactionally. Code development is a separate task.
 
 ## Language
 
@@ -17,13 +18,15 @@ source language; JSON keys are English.
 ## Variants - always ask
 
 Each source is one variant: `male` (Mężczyzna), `female` (Kobieta), `family` (Rodzina -
-whole cake, bread, pot; set `servings` accordingly). Ask the user for every source file,
-once per file. Never infer it from a person's name or greeting; you may show hints
+whole cake, bread, pot; set `servings` accordingly). Ask only when the variant has not
+already been specified for that source in the conversation. Never infer it from a person's name or greeting; you may show hints
 (greeting line, daily kcal) to help them decide.
 
 ## Workflow
 
 1. **Detect:** `uv run przepisnik detect <file>`.
+   If the CLI reports legacy JSON, run `uv run przepisnik migrate-json --dry-run`,
+   inspect the result, then `uv run przepisnik migrate-json`. Originals are retained.
 2. **Ask** for the variant (see above).
 3. **Built-in parser found** (e.g. `respo`):
    `uv run przepisnik import <file> --variant <v> --dry-run`, show the summary, then run
@@ -35,11 +38,14 @@ once per file. Never infer it from a person's name or greeting; you may show hin
    - Write a draft file (JSON list of recipes) in the scratchpad/temp directory.
    - `uv run przepisnik add <drafts.json> --variant <v> (--source <file> | --url <url>) --dry-run`,
      fix validation errors, then run without `--dry-run`.
-5. **Report** to the user: counts, `new_versions`, `conflicts`, `warnings`.
-   - `new_versions`: same title but different ingredients - stored as version 2, 3...
-   - `conflicts`: the same variant already exists with different data. Show the
-     difference and ask before re-running with `--replace`.
-   - "already imported": the identical source was imported before - tell the user.
+5. **Report** counts, `enriched_meals`, `conflicts`, and `warnings`.
+   - Existing identical content is skipped, including reimports after a variant move.
+   - Missing unambiguous variants are added without changing existing metadata.
+   - Different content or ambiguous versions remain conflicts. Show them for review;
+     never attempt `--replace`, direct writes or automatic new versions.
+   - Repeated sources are checked item by item; previously conflicting items can be retried.
+   - Use `--enrich-meals` only when the user requests category enrichment of existing
+     recipes. It adds source suggestions while preserving manual category overrides.
 
 ## Draft rules (agent extraction)
 
@@ -53,6 +59,13 @@ once per file. Never infer it from a person's name or greeting; you may show hin
   hints) goes to `notes`. "Cook N portions at once" -> `suggested_batch_portions`.
 - Dish photo: save it next to the draft and reference it in `image_file`. Skip photos
   that are not the dish itself.
+- Meal occasions are `breakfast` (sniadanie), `lunch` (obiad), `dinner` (kolacja),
+  `snack` (przekaska). Multiple occasions are allowed. Dish types are separate:
+  `main`, `soup`, `salad`, `cake`, `bread`, `dessert`, `other`.
+- Copy explicit source categories; leave unknown categories empty. Do not infer a
+  meal from its sequence number. The Respo parser maps unambiguous time windows and
+  retains the original header and classification basis.
+- Never include user favorites, personal notes or tags in import drafts.
 
 ## New source formats
 
