@@ -1,6 +1,12 @@
 ﻿# Changelog
 
-## [1.2.0] - Unreleased
+## [1.3.0] - Unreleased
+
+- Added a local recipe browser with search, filters and recipe details.
+- Added photo cards, pagination and switching between recipe variants.
+- Added a responsive Polish interface, started with `przepisnik serve`.
+
+## [1.2.0]
 
 - Improved data validation and import conflict reports.
 - Added database and image integrity checks.

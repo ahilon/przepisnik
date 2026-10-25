@@ -38,6 +38,7 @@ from przepisnik.core.models import (
 from przepisnik.core.recipes import RecipeFilters, select_recipes, transfer_variant, update_metadata
 from przepisnik.errors import DraftError, PrzepisnikError, StoreError
 from przepisnik.parsers.registry import default_registry
+from przepisnik.web.server import serve
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -46,6 +47,7 @@ DATA_DIR_ENV = "PRZEPISNIK_DATA"
 DEFAULT_DATA_DIR = "data"
 EXIT_OK = 0
 EXIT_ERROR = 1
+MAX_PORT = 65535
 
 _DRAFTS_ADAPTER = TypeAdapter(list[DraftItem])
 
@@ -123,7 +125,19 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check_cmd.set_defaults(handler=_cmd_check_data)
     _add_recipe_commands(commands)
+    serve_cmd = commands.add_parser("serve", help="Open the local recipe browser on localhost.")
+    serve_cmd.add_argument("--port", type=int, default=8000)
+    serve_cmd.set_defaults(handler=_cmd_serve)
     return parser
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    if not 1 <= args.port <= MAX_PORT:
+        raise StoreError("Port must be between 1 and 65535")
+    print(f"Przepisnik: http://localhost:{args.port} (Ctrl+C to stop)", flush=True)
+    serve(args.data_dir, args.port)
+    return EXIT_OK
 
 
 def _add_merge_arguments(parser: argparse.ArgumentParser) -> None:
