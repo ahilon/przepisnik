@@ -61,6 +61,15 @@ data/sources.json                      # imported sources (by file hash or URL)
 
 ## Development
 
+Ruff handles linting (including the `PL` rules derived from Pylint) and formatting;
+mypy checks types. Run all checks on Windows with:
+
+```powershell
+./scripts/check.cmd
+```
+
+The checks do not modify files. To format and check manually:
+
 ```bash
 uv run ruff format . && uv run ruff check . && uv run python -m mypy src
 ```

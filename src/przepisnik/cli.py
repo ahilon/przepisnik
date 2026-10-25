@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from pydantic import TypeAdapter, ValidationError
 
 from przepisnik.adapters.pdf import PdfDocument
+from przepisnik.core.database import DATABASE_NAME, SqliteStore
 from przepisnik.core.importer import (
     ExtractedRecipe,
     ImportOptions,
@@ -22,9 +23,17 @@ from przepisnik.core.importer import (
     RecipeImporter,
     SourceRef,
 )
-from przepisnik.core.models import AGENT_PARSER, DraftItem, ImageData, VariantKind
-from przepisnik.core.store import JsonRecipeStore, JsonSourceRegistry
-from przepisnik.errors import DraftError, PrzepisnikError
+from przepisnik.core.migration import migrate_json
+from przepisnik.core.models import (
+    AGENT_PARSER,
+    DishType,
+    DraftItem,
+    ImageData,
+    MealType,
+    VariantKind,
+)
+from przepisnik.core.recipes import RecipeFilters, select_recipes, transfer_variant, update_metadata
+from przepisnik.errors import DraftError, PrzepisnikError, StoreError
 from przepisnik.parsers.registry import default_registry
 
 if TYPE_CHECKING:
@@ -50,6 +59,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return handler(args)
     except PrzepisnikError as exc:
+        print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        return EXIT_ERROR
+    except (ValidationError, OSError, ValueError) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return EXIT_ERROR
 
@@ -95,6 +107,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     schema_cmd = commands.add_parser("schema", help="Print the JSON schema of a draft file.")
     schema_cmd.set_defaults(handler=_cmd_schema)
+    migrate_cmd = commands.add_parser(
+        "migrate-json", help="Copy legacy JSON into SQLite, preserving originals."
+    )
+    migrate_cmd.add_argument("--dry-run", action="store_true")
+    migrate_cmd.set_defaults(handler=_cmd_migrate)
+    _add_recipe_commands(commands)
     return parser
 
 
@@ -105,8 +123,12 @@ def _add_merge_arguments(parser: argparse.ArgumentParser) -> None:
         choices=[kind.value for kind in VariantKind],
         help="Audience of this source: " + ", ".join(f"{k} ({k.label})" for k in VariantKind),
     )
-    parser.add_argument("--replace", action="store_true", help="Overwrite differing stored data.")
     parser.add_argument("--dry-run", action="store_true", help="Report without writing.")
+    parser.add_argument(
+        "--enrich-meals",
+        action="store_true",
+        help="Add source meal suggestions to existing recipes; keep user overrides.",
+    )
 
 
 def _cmd_import(args: argparse.Namespace) -> int:
@@ -165,9 +187,160 @@ def _cmd_schema(_args: argparse.Namespace) -> int:
 def _run_import(
     args: argparse.Namespace, recipes: Sequence[ExtractedRecipe], origin: SourceRef
 ) -> ImportReport:
-    importer = RecipeImporter(JsonRecipeStore(args.data_dir), JsonSourceRegistry(args.data_dir))
-    options = ImportOptions(replace=args.replace, dry_run=args.dry_run)
-    return importer.run(recipes, VariantKind(args.variant), origin, options)
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir, read_only=args.dry_run) as store:
+        importer = RecipeImporter(store, store)
+        options = ImportOptions(dry_run=args.dry_run, enrich_meals=args.enrich_meals)
+        return importer.run(recipes, VariantKind(args.variant), origin, options)
+
+
+def _require_migrated(data_dir: Path) -> None:
+    if not (data_dir / DATABASE_NAME).exists() and any(
+        (data_dir / "recipes").glob("*/recipe.json")
+    ):
+        raise StoreError(
+            "Legacy JSON found; run 'przepisnik migrate-json --dry-run', "
+            "then 'przepisnik migrate-json' first"
+        )
+
+
+def _cmd_migrate(args: argparse.Namespace) -> int:
+    print(json.dumps(migrate_json(args.data_dir, dry_run=args.dry_run)))
+    return EXIT_OK
+
+
+def _add_recipe_commands(commands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    recipes = commands.add_parser(
+        "recipes", help="Browse and update recipes through validated operations."
+    )
+    actions = recipes.add_subparsers(required=True, metavar="ACTION")
+    listing = actions.add_parser(
+        "list", help="Filter recipes; lunch means obiad, dinner means kolacja."
+    )
+    listing.add_argument("--query", default="")
+    listing.add_argument("--meal", choices=list(MealType))
+    listing.add_argument("--dish", choices=list(DishType))
+    listing.add_argument("--variant", choices=list(VariantKind))
+    listing.add_argument("--favorite", action="store_true")
+    listing.set_defaults(handler=_cmd_list)
+    show = actions.add_parser("show", help="Print a complete recipe.")
+    show.add_argument("id")
+    show.set_defaults(handler=_cmd_show)
+    favorite = actions.add_parser("favorite", help="Set or clear the favorite flag.")
+    favorite.add_argument("id")
+    flags = favorite.add_mutually_exclusive_group(required=True)
+    flags.add_argument("--on", dest="favorite", action="store_true")
+    flags.add_argument("--off", dest="favorite", action="store_false")
+    favorite.set_defaults(handler=_cmd_favorite)
+    update = actions.add_parser("update", help="Apply a JSON object patch to user metadata only.")
+    update.add_argument("id")
+    update.add_argument("--patch", type=Path, required=True)
+    update.set_defaults(handler=_cmd_update)
+    export = actions.add_parser(
+        "export", help="Print all recipe documents as JSON (not an image backup)."
+    )
+    export.set_defaults(handler=_cmd_export)
+    variants = commands.add_parser(
+        "variants", help="Move or copy assignments without changing quantities."
+    )
+    transfers = variants.add_subparsers(required=True, metavar="ACTION")
+    for action in ("move", "copy"):
+        transfer = transfers.add_parser(action)
+        transfer.add_argument("id")
+        transfer.add_argument(
+            "--from", dest="source_variant", choices=list(VariantKind), required=True
+        )
+        transfer.add_argument(
+            "--to", dest="target_variant", choices=list(VariantKind), required=True
+        )
+        transfer.set_defaults(handler=_cmd_transfer, copy=action == "copy")
+
+
+def _cmd_list(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir, read_only=True) as store:
+        recipes = select_recipes(
+            store.all(),
+            RecipeFilters(
+                query=args.query,
+                meal=MealType(args.meal) if args.meal else None,
+                dish=DishType(args.dish) if args.dish else None,
+                variant=VariantKind(args.variant) if args.variant else None,
+                favorite=args.favorite,
+            ),
+        )
+        print(
+            json.dumps(
+                [
+                    {
+                        "id": r.id,
+                        "title": r.title,
+                        "meal_types": r.effective_meal_types,
+                        "dish_types": r.effective_dish_types,
+                        "variants": list(r.variants),
+                        "favorite": r.user.favorite,
+                    }
+                    for r in recipes
+                ],
+                ensure_ascii=False,
+            )
+        )
+    return EXIT_OK
+
+
+def _cmd_show(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir, read_only=True) as store:
+        recipe = store.get(args.id)
+        if recipe is None:
+            raise StoreError(f"Unknown recipe: {args.id}")
+        print(recipe.model_dump_json(indent=2))
+    return EXIT_OK
+
+
+def _cmd_favorite(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir) as store:
+        print(
+            update_metadata(store, args.id, {"favorite": args.favorite}).model_dump_json(indent=2)
+        )
+    return EXIT_OK
+
+
+def _cmd_update(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    patch = json.loads(args.patch.read_text(encoding="utf-8"))
+    if not isinstance(patch, dict):
+        raise DraftError("Metadata patch must be a JSON object")
+    with SqliteStore(args.data_dir) as store:
+        print(update_metadata(store, args.id, patch).model_dump_json(indent=2))
+    return EXIT_OK
+
+
+def _cmd_transfer(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir) as store:
+        recipe = transfer_variant(
+            store,
+            args.id,
+            (VariantKind(args.source_variant), VariantKind(args.target_variant)),
+            copy=args.copy,
+        )
+        print(recipe.model_dump_json(indent=2))
+    return EXIT_OK
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
+    _require_migrated(args.data_dir)
+    with SqliteStore(args.data_dir, read_only=True) as store:
+        print(
+            json.dumps(
+                [recipe.model_dump(mode="json") for recipe in store.all()],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+    return EXIT_OK
 
 
 def _load_drafts(path: Path) -> list[DraftItem]:

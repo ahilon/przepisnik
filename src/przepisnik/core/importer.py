@@ -1,7 +1,7 @@
 """Use case: import recipes extracted from one source as one variant.
 
 This is the single entry point through which every source - code parsers and
-agent-written drafts alike - reaches the JSON store.
+agent-written drafts alike - reaches the database.
 """
 
 from __future__ import annotations
@@ -13,12 +13,13 @@ from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel, Field
 
+from przepisnik.core.identity import draft_fingerprint
 from przepisnik.core.merge import MergeOutcome, merge_variant
 from przepisnik.core.models import ImportedSource, Recipe, Source, VariantKind, slugify
-from przepisnik.errors import SourceAlreadyImportedError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from contextlib import AbstractContextManager
 
     from przepisnik.core.models import ImageData, RecipeDraft
 
@@ -28,6 +29,24 @@ class RecipeStore(Protocol):
 
     def versions(self, title: str) -> list[Recipe]:
         """Return stored versions of recipes with this title, ordered by version."""
+        ...
+
+    def get(self, recipe_id: str) -> Recipe | None:
+        """Load a stored recipe."""
+        ...
+
+    def transaction(self) -> AbstractContextManager[None]:
+        """Wrap an entire import in a transaction."""
+        ...
+
+    def imported(self, fingerprint: str, kind: VariantKind) -> str | None:
+        """Look up original import identity."""
+        ...
+
+    def remember(
+        self, source_key: str, fingerprint: str, kind: VariantKind, recipe_id: str
+    ) -> None:
+        """Record successfully consumed source content."""
         ...
 
     def save(self, recipe: Recipe, image: ImageData | None = None) -> Recipe:
@@ -75,8 +94,8 @@ class SourceRef:
 class ImportOptions:
     """Behaviour switches of an import run."""
 
-    replace: bool = False
     dry_run: bool = False
+    enrich_meals: bool = False
 
 
 class Conflict(BaseModel):
@@ -96,7 +115,7 @@ class ImportReport(BaseModel):
     variant: VariantKind
     dry_run: bool
     counts: dict[MergeOutcome, int]
-    new_versions: list[str] = Field(default_factory=list)
+    enriched_meals: list[str] = Field(default_factory=list)
     conflicts: list[Conflict] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
@@ -122,37 +141,54 @@ class RecipeImporter:
             recipes: Recipes extracted from the source.
             kind: Variant all recipes of this source represent.
             origin: Source identity.
-            options: Replace and dry-run switches.
+            options: Preview and optional source-category enrichment switches.
 
         Returns:
-            Counts per merge outcome, created versions and conflicts.
+            Counts per merge outcome, category enrichment and conflicts.
 
-        Raises:
-            SourceAlreadyImportedError: If the source was imported before and
-                ``options.replace`` is not set.
+        The whole operation is transactional. Conflicts remain unconsumed and can
+        be reviewed and retried; successful items are individually idempotent.
         """
-        previous = self._registry.find(origin.key)
-        if previous is not None and not options.replace:
-            raise SourceAlreadyImportedError(
-                f"{origin.name} was already imported as '{previous.variant}' "
-                f"from {previous.name} on {previous.imported_at:%Y-%m-%d}; use --replace "
-                "to import it again."
-            )
+        with self._store.transaction():
+            return self._run(recipes, kind, origin, options)
+
+    def _run(
+        self,
+        recipes: Sequence[ExtractedRecipe],
+        kind: VariantKind,
+        origin: SourceRef,
+        options: ImportOptions,
+    ) -> ImportReport:
 
         pending: dict[str, Recipe] = {}
         counts: Counter[MergeOutcome] = Counter()
-        new_versions: list[str] = []
+        enriched_meals: list[str] = []
+        consumed: dict[str, str] = {}
         conflicts: list[Conflict] = []
         for item in recipes:
+            fingerprint = draft_fingerprint(item.draft)
+            consumed_id = consumed.get(fingerprint) or self._store.imported(fingerprint, kind)
+            if consumed_id:
+                recipe = pending.get(consumed_id) or self._store.get(consumed_id)
+                if recipe is not None:
+                    counts[MergeOutcome.UNCHANGED] += 1
+                    recipe = self._enrich(recipe, item.draft, options, enriched_meals)
+                    pending[recipe.id] = recipe
+                    if not options.dry_run:
+                        self._store.remember(origin.key, fingerprint, kind, recipe.id)
+                    continue
             source = Source(
                 parser=origin.parser,
                 file=None if origin.url else origin.name,
                 url=origin.url,
                 sha256=origin.sha256,
                 page=item.page,
+                meal_label=item.draft.meal_label,
+                meal_type=next(iter(item.draft.meal_types), None),
+                meal_type_basis=item.draft.meal_type_basis,
             )
             versions = self._versions(item.draft.title, pending)
-            result = merge_variant(versions, item.draft, kind, source, replace=options.replace)
+            result = merge_variant(versions, item.draft, kind, source)
             counts[result.outcome] += 1
             if result.outcome is MergeOutcome.CONFLICT:
                 conflicts.append(
@@ -164,15 +200,14 @@ class RecipeImporter:
                     )
                 )
                 continue
-            if result.outcome is MergeOutcome.UNCHANGED:
-                continue
-            if result.outcome is MergeOutcome.NEW_VERSION:
-                new_versions.append(result.recipe.id)
             recipe = result.recipe
-            needs_image = recipe.image is None or result.outcome is MergeOutcome.REPLACED
-            if not options.dry_run:
-                recipe = self._store.save(recipe, item.image if needs_image else None)
+            if result.outcome is not MergeOutcome.UNCHANGED and not options.dry_run:
+                recipe = self._store.save(recipe, item.image if recipe.image is None else None)
+            recipe = self._enrich(recipe, item.draft, options, enriched_meals)
             pending[recipe.id] = recipe
+            consumed[fingerprint] = recipe.id
+            if not options.dry_run:
+                self._store.remember(origin.key, fingerprint, kind, recipe.id)
 
         if not options.dry_run:
             self._registry.register(
@@ -191,9 +226,25 @@ class RecipeImporter:
             variant=kind,
             dry_run=options.dry_run,
             counts=dict(counts),
-            new_versions=new_versions,
+            enriched_meals=list(dict.fromkeys(enriched_meals)),
             conflicts=conflicts,
         )
+
+    def _enrich(
+        self,
+        recipe: Recipe,
+        draft: RecipeDraft,
+        options: ImportOptions,
+        enriched: list[str],
+    ) -> Recipe:
+        if not options.enrich_meals:
+            return recipe
+        meals = list(dict.fromkeys([*recipe.meal_types, *draft.meal_types]))
+        if meals == recipe.meal_types:
+            return recipe
+        updated = recipe.model_copy(update={"meal_types": meals})
+        enriched.append(recipe.id)
+        return updated if options.dry_run else self._store.save(updated)
 
     def _versions(self, title: str, pending: dict[str, Recipe]) -> list[Recipe]:
         """Return stored versions overlaid with recipes changed earlier in this run."""
