@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from przepisnik.core.models import ImportedSource, Recipe, VariantKind, slugify, utc_now
+from przepisnik.core.schema import initialize_schema
 from przepisnik.errors import StoreError
 
 if TYPE_CHECKING:
@@ -23,29 +24,6 @@ if TYPE_CHECKING:
     from przepisnik.core.models import ImageData
 
 DATABASE_NAME = "recipes.sqlite3"
-DATABASE_VERSION = 1
-SCHEMA = """
-CREATE TABLE recipes (
-    id TEXT PRIMARY KEY,
-    title_key TEXT NOT NULL,
-    payload TEXT NOT NULL CHECK(json_valid(payload))
-);
-CREATE INDEX recipes_title ON recipes(title_key);
-CREATE TABLE sources (
-    key TEXT PRIMARY KEY,
-    payload TEXT NOT NULL CHECK(json_valid(payload))
-);
-CREATE TABLE imported_items (
-    source_key TEXT NOT NULL,
-    fingerprint TEXT NOT NULL,
-    original_variant TEXT NOT NULL CHECK(original_variant IN ('male', 'female', 'family')),
-    recipe_id TEXT NOT NULL REFERENCES recipes(id),
-    PRIMARY KEY(source_key, fingerprint, original_variant)
-);
-CREATE INDEX imported_content ON imported_items(fingerprint, original_variant);
-CREATE TABLE app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-PRAGMA user_version = 1;
-"""
 IMAGE_EXTENSIONS = frozenset({"png", "jpg", "jpeg", "webp", "gif", "bmp"})
 
 
@@ -67,12 +45,7 @@ class SqliteStore:
                 data_dir.mkdir(parents=True, exist_ok=True)
                 self._connection = sqlite3.connect(path)
             self._connection.execute("PRAGMA foreign_keys = ON")
-            version = self._connection.execute("PRAGMA user_version").fetchone()[0]
-            if version == 0 and (not read_only or not path.exists()):
-                self._connection.executescript(SCHEMA)
-            elif version != DATABASE_VERSION:
-                self._connection.close()
-                raise StoreError(f"Unsupported database version: {version}")
+            initialize_schema(self._connection, path, read_only=read_only and path.exists())
         except (sqlite3.Error, OSError) as exc:
             raise StoreError(f"Cannot open database {path}: {exc}") from exc
 

@@ -132,9 +132,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
-    _require_migrated(args.data_dir)
     if not 1 <= args.port <= MAX_PORT:
         raise StoreError("Port must be between 1 and 65535")
+    if (args.data_dir / DATABASE_NAME).is_file():
+        with SqliteStore(args.data_dir):
+            pass
+    _require_migrated(args.data_dir)
     print(f"Przepisnik: http://localhost:{args.port} (Ctrl+C to stop)", flush=True)
     serve(args.data_dir, args.port)
     return EXIT_OK
