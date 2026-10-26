@@ -34,7 +34,7 @@ function badges(meals, dishes) {
 }
 function photo(url, title, className) {
   const holder = element("div", className);
-  const placeholder = () => holder.replaceChildren(element("span", "image-placeholder", "P."));
+  const placeholder = () => { const image = element("img"); image.src = "/empty_dish.png"; image.alt = title; holder.replaceChildren(image); };
   if (url) {
     const image = element("img");
     image.src = url;
@@ -173,13 +173,17 @@ function renderDetail() {
   if (recipe.image_url) {
     const image = element("img", "detail-hero");
     image.src = recipe.image_url; image.alt = recipe.title;
-    image.addEventListener("error", () => image.remove(), { once: true });
+    image.addEventListener("error", () => { image.src = "/empty_dish.png"; }, { once: true });
     content.append(image);
   }
   const inner = element("div", "detail-inner");
   inner.append(badges(recipe.effective_meal_types, recipe.effective_dish_types));
   const title = element("h2", "", recipe.title); title.id = "detail-title";
   inner.append(title);
+  const edit = element("button", "primary", "Edytuj przepis");
+  edit.type = "button";
+  edit.addEventListener("click", () => openEditor(recipe));
+  inner.append(edit);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
@@ -262,7 +266,7 @@ $("#detail").addEventListener("click", event => { if (event.target === $("#detai
   if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $("#detail").close();
 } });
 document.addEventListener("keydown", event => {
-  if (event.key === "/" && !$("#detail").open && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); $("#search").focus(); }
+  if (event.key === "/" && !$("#detail").open && !$("#editor").open && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) { event.preventDefault(); $("#search").focus(); }
 });
 const initial = new URLSearchParams(location.search);
 $("#search").value = initial.get("q") || "";
@@ -274,3 +278,135 @@ state.collection = initial.get("favorite") === "1" ? "favorites" : initial.get("
 state.page = /^\d+$/.test(initial.get("page") || "") ? Math.max(1, Number(initial.get("page"))) : 1;
 updateControls();
 loadRecipes();
+
+let editingRecipe = null;
+let previewUrl = null;
+function editorField(parent, id, title, value = "", type = "text") {
+  const label = element("label", "", title); label.htmlFor = id;
+  const input = element(type === "textarea" ? "textarea" : "input");
+  input.id = id; input.name = id; input.value = value ?? "";
+  if (type !== "textarea") input.type = type;
+  if (type === "number") { input.min = "0"; input.step = "any"; }
+  parent.append(label, input);
+  return input;
+}
+function categoryFields(form, name, title, values, choices) {
+  const fieldset = element("fieldset", "editor-checks");
+  fieldset.append(element("legend", "", title));
+  choices.forEach(value => {
+    const label = element("label"); const input = element("input");
+    input.type = "checkbox"; input.name = name; input.value = value;
+    input.checked = values.includes(value);
+    label.append(input, document.createTextNode(labels[value])); fieldset.append(label);
+  });
+  form.append(fieldset);
+}
+function variantFields(form, kind, variant, steps) {
+  const fieldset = element("fieldset", "editor-variant");
+  fieldset.dataset.kind = kind;
+  fieldset.append(element("legend", "", labels[kind]));
+  const servings = editorField(fieldset, `${kind}-servings`, "Liczba porcji", variant.servings, "number");
+  servings.required = true; servings.min = "1"; servings.step = "1";
+  const ingredients = editorField(fieldset, `${kind}-ingredients`, "Składniki (każdy w osobnym wierszu)", variant.ingredients.map(ingredientText).join("\n"), "textarea");
+  ingredients.required = true;
+  const preparation = editorField(fieldset, `${kind}-steps`, "Przygotowanie (każdy krok w osobnym wierszu)", (variant.steps || steps).join("\n"), "textarea");
+  preparation.required = true;
+  const nutrition = element("div", "editor-nutrition");
+  for (const [key, title] of [["kcal", "Kalorie (kcal)"], ["protein_g", "Białko (g)"], ["fat_g", "Tłuszcz (g)"], ["carbs_g", "Węglowodany (g)"]]) {
+    const item = element("div"); editorField(item, `${kind}-${key}`, title, variant.nutrition?.[key], "number"); nutrition.append(item);
+  }
+  fieldset.append(element("p", "detail-hint", "Wartości odżywcze dla wszystkich porcji: wypełnij wszystkie cztery pola albo zostaw wszystkie puste."), nutrition);
+  form.append(fieldset);
+}
+function openEditor(recipe = null) {
+  editingRecipe = recipe;
+  const form = $("#recipe-form"); form.replaceChildren();
+  $("#editor-title").textContent = recipe ? "Edytuj przepis" : "Dodaj przepis";
+  editorField(form, "edit-title", "Nazwa przepisu", recipe?.title).required = true;
+  categoryFields(form, "edit-meals", "Pora posiłku", recipe?.effective_meal_types || [], ["breakfast", "lunch", "dinner", "snack"]);
+  categoryFields(form, "edit-dishes", "Rodzaj potrawy", recipe?.effective_dish_types || [], ["main", "soup", "salad", "cake", "bread", "dessert", "other"]);
+  editorField(form, "edit-minutes", "Czas przygotowania (min)", recipe?.user.preparation_minutes, "number");
+  $("#edit-minutes").min = "1"; $("#edit-minutes").step = "1";
+  editorField(form, "edit-tags", "Tagi (oddziel przecinkami)", recipe?.user.tags.join(", "));
+  editorField(form, "edit-notes", "Twoje notatki", recipe?.user.notes, "textarea");
+  const favorite = editorField(form, "edit-favorite", "Ulubiony", "", "checkbox"); favorite.checked = recipe?.user.favorite || false;
+  const variants = recipe?.variants || { family: { servings: 1, ingredients: [], nutrition: null } };
+  for (const [kind, variant] of Object.entries(variants)) variantFields(form, kind, variant, recipe?.steps || []);
+  if (!recipe) {
+    const label = element("label", "", "Wariant nowego przepisu"); label.htmlFor = "edit-kind";
+    const select = element("select"); select.id = "edit-kind";
+    for (const kind of ["family", "female", "male"]) select.append(new Option(labels[kind], kind));
+    select.addEventListener("change", () => { form.querySelector(".editor-variant legend").textContent = labels[select.value]; });
+    form.append(label, select);
+  }
+  const upload = editorField(form, "edit-image", "Zdjęcie (PNG, JPG, WebP, GIF; maks. 8 MB)", "", "file");
+  upload.accept = "image/png,image/jpeg,image/webp,image/gif";
+  const preview = element("img", "editor-preview"); preview.alt = "Podgląd zdjęcia";
+  preview.src = recipe?.image_url || "/empty_dish.png"; form.append(preview);
+  upload.addEventListener("change", () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    const file = upload.files[0]; previewUrl = file ? URL.createObjectURL(file) : null;
+    preview.src = previewUrl || recipe?.image_url || "/empty_dish.png";
+  });
+  const error = element("p", "error"); error.id = "editor-error"; error.hidden = true; error.setAttribute("role", "alert");
+  const actions = element("div", "editor-actions");
+  const save = element("button", "primary", "Zapisz przepis"); save.type = "submit";
+  const cancel = element("button", "secondary", "Anuluj"); cancel.type = "button";
+  cancel.addEventListener("click", () => $("#editor").close());
+  actions.append(save, cancel); form.append(error, actions);
+  $("#editor").showModal();
+}
+function readUpload(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = () => reject(new Error("Nie udało się odczytać zdjęcia."));
+    reader.readAsDataURL(file);
+  });
+}
+$("#add-recipe").addEventListener("click", () => openEditor());
+$("#editor").addEventListener("close", () => { if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = null; });
+$("#recipe-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const save = form.querySelector('[type="submit"]'); const error = $("#editor-error");
+  error.hidden = true; save.disabled = true;
+  const lines = value => value.split("\n").map(line => line.trim()).filter(Boolean);
+  const checked = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
+  try {
+    const variants = {};
+    for (const fieldset of form.querySelectorAll(".editor-variant")) {
+      const kind = fieldset.dataset.kind;
+      const original = editingRecipe?.variants[kind];
+      const raw = $(`#${kind}-ingredients`).value;
+      const ingredients = original && raw === original.ingredients.map(ingredientText).join("\n")
+        ? original.ingredients : lines(raw).map(name => ({ name, raw: name }));
+      const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
+      if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
+      const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
+      variants[editingRecipe ? kind : $("#edit-kind").value] = {
+        ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
+        steps: lines($(`#${kind}-steps`).value)
+      };
+    }
+    const recipe = {
+      title: $("#edit-title").value.trim(),
+      steps: editingRecipe?.steps || Object.values(variants)[0].steps,
+      variants,
+      user: { ...editingRecipe?.user, favorite: $("#edit-favorite").checked,
+        notes: $("#edit-notes").value, tags: $("#edit-tags").value.split(",").map(tag => tag.trim()).filter(Boolean),
+        preparation_minutes: $("#edit-minutes").value ? Number($("#edit-minutes").value) : null,
+        meal_types: checked("edit-meals"), dish_types: checked("edit-dishes") }
+    };
+    const file = $("#edit-image").files[0];
+    if (file && file.size > 8000000) throw new Error("Zdjęcie przekracza limit 8 MB.");
+    const response = await fetch(editingRecipe ? `/api/recipes/${encodeURIComponent(editingRecipe.id)}` : "/api/recipes", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipe, updated_at: editingRecipe?.updated_at, upload: file ? await readUpload(file) : null })
+    });
+    const body = await response.json(); if (!response.ok) throw new Error(body.error || "Nie udało się zapisać przepisu.");
+    $("#editor").close();
+    await loadRecipes(); await openRecipe(body.id);
+  } catch (failure) { error.textContent = failure.message; error.hidden = false; }
+  finally { save.disabled = false; }
+});

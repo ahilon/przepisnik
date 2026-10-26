@@ -1,10 +1,12 @@
-"""Read-only loopback HTTP application; one SQLite connection per request."""
+"""Loopback recipe editor; one SQLite connection per request."""
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import mimetypes
+import secrets
 import sqlite3
 from functools import partial
 from http import HTTPStatus
@@ -16,23 +18,24 @@ from urllib.parse import parse_qs, urlsplit
 from pydantic import ValidationError
 
 from przepisnik.core.database import DATABASE_NAME, SqliteStore
-from przepisnik.core.models import DishType, MealType, VariantKind, slugify
+from przepisnik.core.models import DishType, ImageData, MealType, Recipe, VariantKind, slugify
 from przepisnik.core.recipes import RecipeFilters, select_recipes
 from przepisnik.errors import StoreError
 
 if TYPE_CHECKING:
     from socket import socket
 
-    from przepisnik.core.models import Recipe
 
 logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).parent / "static"
 PAGE_SIZE = 24
 MAX_PAGE = 100_000
+MAX_BODY_BYTES = 12_000_000
+MAX_IMAGE_BYTES = 8_000_000
 
 
 class RecipeHandler(BaseHTTPRequestHandler):
-    """Serve a fixed asset allowlist and read-only recipe endpoints."""
+    """Serve a fixed asset allowlist and validated recipe endpoints."""
 
     def __init__(
         self,
@@ -71,6 +74,9 @@ class RecipeHandler(BaseHTTPRequestHandler):
         if location.path in assets:
             self._file(STATIC_DIR / assets[location.path])
             return
+        if location.path == "/empty_dish.png":
+            self._file(self._data_dir / "empty_dish.png")
+            return
         with SqliteStore(self._data_dir, read_only=True) as store:
             if location.path == "/api/recipes":
                 self._list(store, parse_qs(location.query))
@@ -95,6 +101,75 @@ class RecipeHandler(BaseHTTPRequestHandler):
                         self._file(image)
                         return
         self._json({"error": "Nie znaleziono przepisu lub pliku."}, HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:
+        """Validate same-origin writes and persist a recipe in a transaction."""
+        host = self.headers.get("Host", "")
+        origin = self.headers.get("Origin")
+        if host not in {f"localhost:{self._port}", f"127.0.0.1:{self._port}"} or (
+            origin and origin != f"http://{host}"
+        ):
+            self._json({"error": "Niedozwolone źródło zapisu."}, HTTPStatus.FORBIDDEN)
+            return
+        if self.headers.get_content_type() != "application/json":
+            self._json({"error": "Wymagany format JSON."}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if not 0 < length <= MAX_BODY_BYTES:
+                self._json(
+                    {"error": "Formularz przekracza limit 12 MB."},
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                )
+                return
+            payload = json.loads(self.rfile.read(length))
+            if not isinstance(payload, dict):
+                raise ValueError("Invalid payload")
+            path = urlsplit(self.path).path
+            creating = path == "/api/recipes"
+            if not creating and not path.startswith("/api/recipes/"):
+                self._json({"error": "Nie znaleziono adresu."}, HTTPStatus.NOT_FOUND)
+                return
+            image = _uploaded_image(payload.get("upload"))
+            with SqliteStore(self._data_dir) as store, store.transaction():
+                current = None if creating else store.get(path.removeprefix("/api/recipes/"))
+                if not creating and current is None:
+                    self._json({"error": "Nie znaleziono przepisu."}, HTTPStatus.NOT_FOUND)
+                    return
+                if (
+                    current
+                    and payload.get("updated_at") != current.model_dump(mode="json")["updated_at"]
+                ):
+                    self._json(
+                        {"error": "Przepis zmienił się. Otwórz go ponownie przed edycją."},
+                        HTTPStatus.CONFLICT,
+                    )
+                    return
+                fields = payload["recipe"]
+                if not isinstance(fields, dict) or fields.keys() - {
+                    "title",
+                    "steps",
+                    "variants",
+                    "user",
+                    "notes",
+                }:
+                    raise ValueError("Unexpected fields")
+                original = current.model_dump() if current else {}
+                identity = current.id if current else f"recipe-{secrets.token_hex(8)}"
+                recipe = Recipe.model_validate({**original, **fields, "id": identity})
+                saved = store.save(recipe, image)
+            self._json({"id": saved.id}, HTTPStatus.CREATED if creating else HTTPStatus.OK)
+        except (ValueError, KeyError, TypeError):
+            self._json(
+                {"error": "Sprawdź formularz i zdjęcie. Wymagane: nazwa, składniki i kroki."},
+                HTTPStatus.BAD_REQUEST,
+            )
+        except (StoreError, sqlite3.Error, OSError):
+            logger.exception("Recipe save failed")
+            self._json(
+                {"error": "Nie udało się zapisać przepisu. Spróbuj ponownie."},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
 
     def _list(self, store: SqliteStore, query: dict[str, list[str]]) -> None:
         values = {key: value[-1] for key, value in query.items()}
@@ -157,7 +232,7 @@ class RecipeHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self'; "
+            "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; "
             "script-src 'self'; frame-ancestors 'none'",
         )
         self.end_headers()
@@ -168,8 +243,30 @@ class RecipeHandler(BaseHTTPRequestHandler):
         logger.info(message, *args)
 
 
-def _image_url(recipe: Recipe) -> str | None:
-    return f"/images/{recipe.id}" if recipe.image else None
+def _uploaded_image(value: object) -> ImageData | None:
+    """Decode a bounded raster upload without trusting a supplied file name."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("Invalid image")
+    content = base64.b64decode(value, validate=True)
+    if not content or len(content) > MAX_IMAGE_BYTES:
+        raise ValueError("Image exceeds 8 MB")
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        extension = "png"
+    elif content.startswith(b"\xff\xd8\xff"):
+        extension = "jpg"
+    elif content[:6] in {b"GIF87a", b"GIF89a"}:
+        extension = "gif"
+    elif content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        extension = "webp"
+    else:
+        raise ValueError("Unsupported raster image")
+    return ImageData(content=content, extension=extension)
+
+
+def _image_url(recipe: Recipe) -> str:
+    return f"/images/{recipe.id}" if recipe.image else "/empty_dish.png"
 
 
 def _summary(recipe: Recipe) -> dict[str, object]:
