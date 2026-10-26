@@ -1,4 +1,10 @@
-﻿# Changelog
+# Changelog
+
+## Unreleased
+
+- Added transactional SQLite migrations with pre-upgrade backups.
+- Added hours/minutes and ingredient fields with custom units.
+- Added individual steps with drag reordering and up/down controls.
 
 ## [1.3.0] - Unreleased
 

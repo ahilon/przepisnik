@@ -301,16 +301,89 @@ function categoryFields(form, name, title, values, choices) {
   });
   form.append(fieldset);
 }
+function rowButton(title, action) {
+  const button = element("button", "secondary", title); button.type = "button";
+  button.addEventListener("click", action); return button;
+}
+function ingredientFields(parent, kind, ingredients) {
+  parent.append(element("h3", "", "Składniki"));
+  const units = element("datalist"); units.id = `${kind}-units`;
+  for (const unit of ["g", "ml", "kg", "l", "łyżka", "łyżeczka", "szklanka", "szt.", "szczypta", "opakowanie"]) units.append(new Option(unit, unit));
+  const list = element("div", "ingredient-editor"); parent.append(units, list);
+  function add(ingredient = {}) {
+    const row = element("div", "ingredient-row"); row.originalIngredient = ingredient;
+    const id = `${kind}-ingredient-${crypto.randomUUID()}`;
+    const nameBox = element("div"); const amountBox = element("div"); const unitBox = element("div");
+    const name = editorField(nameBox, `${id}-name`, "Nazwa składnika", ingredient.name); name.required = true; name.dataset.field = "name";
+    const amount = editorField(amountBox, `${id}-amount`, "Ilość", ingredient.amount, "number"); amount.dataset.field = "amount";
+    const unit = editorField(unitBox, `${id}-unit`, "Jednostka", ingredient.unit); unit.dataset.field = "unit"; unit.setAttribute("list", units.id); unit.placeholder = "Wybierz lub wpisz";
+    const remove = rowButton("×", () => {
+      if (list.children.length > 1) row.remove();
+      else { name.value = ""; amount.value = ""; unit.value = ""; row.originalIngredient = {}; row.querySelector(".ingredient-context")?.remove(); name.focus(); }
+    });
+    remove.className = "remove-ingredient"; remove.title = "Usuń składnik"; remove.setAttribute("aria-label", "Usuń składnik");
+    row.append(nameBox, amountBox, unitBox, remove);
+    if (ingredient.raw || ingredient.metric_amount != null || ingredient.group) row.append(element("p", "detail-hint ingredient-context", [ingredient.group, ingredientText(ingredient)].filter(Boolean).join(" · ")));
+    list.append(row); return name;
+  }
+  (ingredients.length ? ingredients : [{}]).forEach(add);
+  parent.append(rowButton("+ Dodaj składnik", () => add().focus()));
+}
+function readIngredients(fieldset) {
+  return [...fieldset.querySelectorAll(".ingredient-row")].map(row => {
+    const original = row.originalIngredient;
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    const amountText = row.querySelector('[data-field="amount"]').value;
+    const amount = amountText === "" ? null : Number(amountText);
+    const unit = row.querySelector('[data-field="unit"]').value.trim() || null;
+    if (!name) throw new Error("Podaj nazwę każdego składnika.");
+    if (name === original.name && amount === (original.amount ?? null) && unit === (original.unit || null)) return original;
+    return { ...original, name, amount, unit, raw: null };
+  });
+}
+function stepFields(parent, kind, steps) {
+  parent.append(element("h3", "", "Przygotowanie"), element("p", "detail-hint", "Przeciągnij uchwyt ⋮⋮, aby zmienić kolejność, lub użyj przycisków ↑ i ↓."));
+  const list = element("ol", "step-editor"); list.setAttribute("aria-live", "polite"); parent.append(list);
+  let dragged = null;
+  function renumber() {
+    [...list.children].forEach((row, index) => {
+      row.querySelector("label").textContent = `Krok ${index + 1}`;
+      row.querySelector('[data-move="up"]').disabled = index === 0;
+      row.querySelector('[data-move="down"]').disabled = index === list.children.length - 1;
+    });
+  }
+  function add(text = "") {
+    const row = element("li", "step-row");
+    const handle = element("span", "drag-handle", "⋮⋮"); handle.draggable = true; handle.title = "Przeciągnij krok";
+    handle.addEventListener("dragstart", event => { dragged = row; event.dataTransfer.setData("text/plain", "step"); event.dataTransfer.effectAllowed = "move"; row.classList.add("dragging"); });
+    handle.addEventListener("dragend", () => { dragged = null; row.classList.remove("dragging"); });
+    const box = element("div", "step-content");
+    const input = editorField(box, `${kind}-step-${crypto.randomUUID()}`, "Krok", text, "textarea"); input.required = true;
+    const controls = element("div", "row-actions");
+    const up = rowButton("↑", () => { if (row.previousElementSibling) list.insertBefore(row, row.previousElementSibling); renumber(); up.focus(); }); up.dataset.move = "up"; up.setAttribute("aria-label", "Przesuń krok w górę");
+    const down = rowButton("↓", () => { if (row.nextElementSibling) list.insertBefore(row.nextElementSibling, row); renumber(); down.focus(); }); down.dataset.move = "down"; down.setAttribute("aria-label", "Przesuń krok w dół");
+    controls.append(up, down, rowButton("Usuń krok", () => { if (list.children.length > 1) row.remove(); else input.value = ""; renumber(); }));
+    row.append(handle, box, controls); list.append(row);
+    row.addEventListener("dragover", event => { if (dragged && dragged !== row) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; } });
+    row.addEventListener("drop", event => {
+      if (!dragged || dragged === row) return;
+      event.preventDefault();
+      const after = event.clientY > row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2;
+      list.insertBefore(dragged, after ? row.nextElementSibling : row); renumber();
+    });
+    renumber(); return input;
+  }
+  (steps.length ? steps : [""]).forEach(add);
+  parent.append(rowButton("+ Dodaj krok", () => add().focus()));
+}
 function variantFields(form, kind, variant, steps) {
   const fieldset = element("fieldset", "editor-variant");
   fieldset.dataset.kind = kind;
   fieldset.append(element("legend", "", labels[kind]));
   const servings = editorField(fieldset, `${kind}-servings`, "Liczba porcji", variant.servings, "number");
   servings.required = true; servings.min = "1"; servings.step = "1";
-  const ingredients = editorField(fieldset, `${kind}-ingredients`, "Składniki (każdy w osobnym wierszu)", variant.ingredients.map(ingredientText).join("\n"), "textarea");
-  ingredients.required = true;
-  const preparation = editorField(fieldset, `${kind}-steps`, "Przygotowanie (każdy krok w osobnym wierszu)", (variant.steps || steps).join("\n"), "textarea");
-  preparation.required = true;
+  ingredientFields(fieldset, kind, variant.ingredients);
+  stepFields(fieldset, kind, variant.steps || steps);
   const nutrition = element("div", "editor-nutrition");
   for (const [key, title] of [["kcal", "Kalorie (kcal)"], ["protein_g", "Białko (g)"], ["fat_g", "Tłuszcz (g)"], ["carbs_g", "Węglowodany (g)"]]) {
     const item = element("div"); editorField(item, `${kind}-${key}`, title, variant.nutrition?.[key], "number"); nutrition.append(item);
@@ -325,8 +398,14 @@ function openEditor(recipe = null) {
   editorField(form, "edit-title", "Nazwa przepisu", recipe?.title).required = true;
   categoryFields(form, "edit-meals", "Pora posiłku", recipe?.effective_meal_types || [], ["breakfast", "lunch", "dinner", "snack"]);
   categoryFields(form, "edit-dishes", "Rodzaj potrawy", recipe?.effective_dish_types || [], ["main", "soup", "salad", "cake", "bread", "dessert", "other"]);
-  editorField(form, "edit-minutes", "Czas przygotowania (min)", recipe?.user.preparation_minutes, "number");
-  $("#edit-minutes").min = "1"; $("#edit-minutes").step = "1";
+  const duration = element("div", "editor-duration");
+  const minutes = recipe?.user.preparation_minutes;
+  for (const [id, title, value] of [["edit-hours", "Godziny", minutes == null ? "" : Math.floor(minutes / 60)], ["edit-minutes", "Minuty", minutes == null ? "" : minutes % 60]]) {
+    const box = element("div"); const input = editorField(box, id, title, value, "number"); input.step = "1";
+    if (id === "edit-minutes") input.max = "59";
+    duration.append(box);
+  }
+  form.append(element("h3", "", "Czas przygotowania"), duration);
   editorField(form, "edit-tags", "Tagi (oddziel przecinkami)", recipe?.user.tags.join(", "));
   editorField(form, "edit-notes", "Twoje notatki", recipe?.user.notes, "textarea");
   const favorite = editorField(form, "edit-favorite", "Ulubiony", "", "checkbox"); favorite.checked = recipe?.user.favorite || false;
@@ -371,31 +450,31 @@ $("#recipe-form").addEventListener("submit", async event => {
   const form = event.currentTarget;
   const save = form.querySelector('[type="submit"]'); const error = $("#editor-error");
   error.hidden = true; save.disabled = true;
-  const lines = value => value.split("\n").map(line => line.trim()).filter(Boolean);
   const checked = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
   try {
     const variants = {};
     for (const fieldset of form.querySelectorAll(".editor-variant")) {
       const kind = fieldset.dataset.kind;
       const original = editingRecipe?.variants[kind];
-      const raw = $(`#${kind}-ingredients`).value;
-      const ingredients = original && raw === original.ingredients.map(ingredientText).join("\n")
-        ? original.ingredients : lines(raw).map(name => ({ name, raw: name }));
+      const ingredients = readIngredients(fieldset);
       const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
       if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
       const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
       variants[editingRecipe ? kind : $("#edit-kind").value] = {
         ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
-        steps: lines($(`#${kind}-steps`).value)
+        steps: [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim())
       };
     }
+    const preparationMinutes = Number($("#edit-hours").value) * 60 + Number($("#edit-minutes").value);
+    if (($("#edit-hours").value !== "" || $("#edit-minutes").value !== "") && (!Number.isSafeInteger(preparationMinutes) || preparationMinutes <= 0)) throw new Error("Czas przygotowania musi wynosić co najmniej minutę lub pozostać pusty.");
+    if (Object.values(variants).some(variant => variant.steps.some(step => !step))) throw new Error("Uzupełnij treść każdego kroku.");
     const recipe = {
       title: $("#edit-title").value.trim(),
       steps: editingRecipe?.steps || Object.values(variants)[0].steps,
       variants,
       user: { ...editingRecipe?.user, favorite: $("#edit-favorite").checked,
         notes: $("#edit-notes").value, tags: $("#edit-tags").value.split(",").map(tag => tag.trim()).filter(Boolean),
-        preparation_minutes: $("#edit-minutes").value ? Number($("#edit-minutes").value) : null,
+        preparation_minutes: preparationMinutes || null,
         meal_types: checked("edit-meals"), dish_types: checked("edit-dishes") }
     };
     const file = $("#edit-image").files[0];

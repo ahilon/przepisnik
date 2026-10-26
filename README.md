@@ -13,6 +13,20 @@ SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short his
 Version 1.3.0 is not released; package metadata still declares 1.2.0.
 Package versions are independent of recipe document and SQLite schema versions.
 
+SQLite schema upgrades run automatically when opening a database for writing,
+including server startup. Existing databases get a `.before-vN.bak` SQLite backup
+before an upgrade. All pending steps run in one transaction; a failure rolls back
+both schema changes and the version. Read-only commands require an up-to-date
+schema; start the server once to upgrade an older database. Newer unsupported
+versions are rejected. For future upgrades, append SQL statement tuples to
+`core/schema.py` without changing released migrations.
+
+The recipe editor accepts hours and minutes separately, stored as total minutes.
+Each ingredient has its own name, quantity and unit fields; units can be selected
+or typed freely. Preparation steps have separate text fields and can be reordered
+using the drag handle or the up/down buttons. Numbering follows the saved order.
+
+
 ## Setup
 
 ```bash

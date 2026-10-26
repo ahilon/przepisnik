@@ -287,7 +287,7 @@ def serve(data_dir: Path, port: int = 8000) -> None:
     """Run the local browser until interrupted; never bind a public interface."""
     if not (data_dir / DATABASE_NAME).is_file():
         raise StoreError("No SQLite database found; run migrate-json before starting the browser")
-    with SqliteStore(data_dir, read_only=True) as store:
+    with SqliteStore(data_dir) as store:
         store.all()  # Validate data before announcing a running application.
     handler = partial(RecipeHandler, data_dir=data_dir.resolve())
     with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
