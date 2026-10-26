@@ -77,8 +77,13 @@ The Polish interface provides recipe photos, search by name or ingredient, combi
 meal/dish/variant/tag filters, favorites, uncategorized recipes and pagination.
 Open a card for ingredients, preparation, nutrition, notes and source details;
 switch variants without modifying stored data. Filters are preserved in the URL.
-The layout adapts to smaller screens. Editing and favorite toggles in the UI are
-planned separately; this browser only reads the database.
+The layout adapts to smaller screens. Use **Dodaj przepis** to create a recipe,
+or **Edytuj przepis** in its details to edit ingredients, preparation, nutrition,
+categories, tags, favorites and notes. Existing variants and source metadata are retained.
+Photos support PNG, JPEG, WebP and GIF up to 8 MB, with a preview before saving.
+Recipes without a photo display `data/empty_dish.png`. Editing without selecting
+a new photo keeps the existing photo. Conflicting edits from another tab are rejected;
+reopen the recipe to load the latest version before editing again.
 
 The application uses Python's standard HTTP server and bundled HTML/CSS/JavaScript,
 with no frontend build or additional dependencies.
