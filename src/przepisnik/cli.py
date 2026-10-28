@@ -38,6 +38,7 @@ from przepisnik.core.models import (
 from przepisnik.core.recipes import RecipeFilters, select_recipes, transfer_variant, update_metadata
 from przepisnik.errors import DraftError, PrzepisnikError, StoreError
 from przepisnik.parsers.registry import default_registry
+from przepisnik.web.config import ServerConfig, load_server_config
 from przepisnik.web.server import serve
 
 if TYPE_CHECKING:
@@ -47,7 +48,6 @@ DATA_DIR_ENV = "PRZEPISNIK_DATA"
 DEFAULT_DATA_DIR = "data"
 EXIT_OK = 0
 EXIT_ERROR = 1
-MAX_PORT = 65535
 
 _DRAFTS_ADAPTER = TypeAdapter(list[DraftItem])
 
@@ -125,21 +125,36 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     check_cmd.set_defaults(handler=_cmd_check_data)
     _add_recipe_commands(commands)
-    serve_cmd = commands.add_parser("serve", help="Open the local recipe browser on localhost.")
-    serve_cmd.add_argument("--port", type=int, default=8000)
+    serve_cmd = commands.add_parser("serve", help="Run the recipe browser.")
+    serve_cmd.add_argument(
+        "--config", type=Path, help="TOML configuration file (default przepisnik.toml)."
+    )
+    serve_cmd.add_argument("--host", help="Override the listener address.")
+    serve_cmd.add_argument("--port", type=int, help="Override the listener port.")
+    serve_cmd.add_argument(
+        "--origin", action="append", help="Allowed browser origin; repeat for multiple URLs."
+    )
     serve_cmd.set_defaults(handler=_cmd_serve)
     return parser
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
-    if not 1 <= args.port <= MAX_PORT:
-        raise StoreError("Port must be between 1 and 65535")
+    config = load_server_config(
+        args.config or Path("przepisnik.toml"), required=args.config is not None
+    )
+    values = config.model_dump()
+    for key in ("host", "port"):
+        if (value := getattr(args, key)) is not None:
+            values[key] = value
+    if args.origin is not None:
+        values["origins"] = args.origin
+    config = ServerConfig.model_validate(values)
     if (args.data_dir / DATABASE_NAME).is_file():
         with SqliteStore(args.data_dir):
             pass
     _require_migrated(args.data_dir)
-    print(f"Przepisnik: http://localhost:{args.port} (Ctrl+C to stop)", flush=True)
-    serve(args.data_dir, args.port)
+    print(f"Przepisnik: {sorted(config.allowed_origins)[0]} (Ctrl+C to stop)", flush=True)
+    serve(args.data_dir, config)
     return EXIT_OK
 
 

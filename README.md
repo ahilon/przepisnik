@@ -4,13 +4,18 @@ Recipe knowledge base built from diet-plan PDFs, recipe websites and own recipes
 Every source is validated against a shared Pydantic schema and stored in SQLite.
 The CLI, project skills and local recipe browser share the same application operations.
 
+This project is developed with AI assistance, including Codex and Claude Code,
+for planning, implementation and documentation.
+
 ## Version status
 
-The current work targets **1.3.0**: a local recipe browser with photo cards,
-search, filters, pagination and recipe details with variant switching.
+The current work targets **1.4.0**: configurable server addresses and allowed
+origins for home-network access, with instance setup documentation.
+Version **1.3.0** introduced a local recipe browser with photo cards, search,
+filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.3.0 is not released; package metadata still declares 1.2.0.
+Version 1.4.0 is not released; package metadata declares 1.4.0.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,
@@ -28,6 +33,8 @@ using the drag handle or the up/down buttons. Numbering follows the saved order.
 
 
 ## Setup
+
+For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
 
 ```bash
 uv sync
@@ -85,7 +92,7 @@ uv run przepisnik serve
 
 Open **http://localhost:8000** in your browser. Stop the server with `Ctrl+C`.
 Use `serve --port 8080` to choose another port, or the global `--data-dir` option
-to browse a different database. The server binds only to the local computer.
+to browse a different database. The server binds only to the local computer by default; see [instance setup](SETUP.md) for LAN access and configuration.
 
 The Polish interface provides recipe photos, search by name or ingredient, combined
 meal/dish/variant/tag filters, favorites, uncategorized recipes and pagination.
