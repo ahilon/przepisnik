@@ -1,0 +1,120 @@
+{
+  "schema_version": 2,
+  "id": "bataty-z-pieczonymi-warzywami-i-serem-typu-feta",
+  "title": "Bataty z pieczonymi warzywami i serem typu feta",
+  "version": 1,
+  "image": "image.png",
+  "steps": [
+    "Piekarnik rozgrzewamy do 200 stopni, tryb góra-dół lub 180 stopni z termoobiegiem.",
+    "Bataty obieramy, myjemy i kroimy je na małe, równe kawałki – wielkości około 2 cm, w kształcie kostki lub grubych półplastrów.",
+    "Paprykę czerwoną oraz cebulę kroimy w średnią kostkę około 2 cm. Wszystkie pokrojone warzywa (batata, cebulę oraz paprykę czerwoną) przekładamy do dużej miski.",
+    "Dodajemy oliwę, sól oraz pieprz. Dokładnie mieszamy rękami lub dużą łyżką, aby warzywa były równomiernie pokryte przyprawami.",
+    "Przekładamy warzywa na dużą blachę wyłożoną papierem do pieczenia. Rozkładamy je w jednej warstwie – bataty nie mogą leżeć jeden na drugim, żeby się równomiernie upiekły.",
+    "Wkładamy blachę do nagrzanego piekarnika i pieczemy przez 25–30 minut, aż bataty zmiękną i zaczną się lekko rumienić na brzegach. Sprawdzamy miękkość batata widelcem – powinien wchodzić łatwo, bez oporu.",
+    "W międzyczasie kroimy ser w kostkę o boku około 1,5 cm. Pomidorki koktajlowe przekrawamy na połówki.",
+    "Po 25–30 minutach wyjmujemy warzywa z piekarnika, równomiernie rozkładamy na nich ser typu feta oraz pomidorki koktajlowe. Wkładamy blachę z powrotem do piekarnika i pieczemy jeszcze 7–8 minut – aż ser zacznie się lekko rumienić, a pomidorki delikatnie zmiękną."
+  ],
+  "notes": [],
+  "meal_types": [
+    "lunch"
+  ],
+  "dish_types": [],
+  "user": {
+    "favorite": false,
+    "notes": "",
+    "tags": [],
+    "meal_types": null,
+    "dish_types": null,
+    "preparation_minutes": null
+  },
+  "created_at": null,
+  "updated_at": null,
+  "suggested_batch_portions": null,
+  "variants": {
+    "female": {
+      "servings": 1,
+      "nutrition": {
+        "kcal": 593.0,
+        "protein_g": 26.0,
+        "fat_g": 23.0,
+        "carbs_g": 74.0
+      },
+      "ingredients": [
+        {
+          "name": "Batat",
+          "amount": 1.5,
+          "unit": "sztuki",
+          "metric_amount": 250.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Batat – 1.5 sztuki (250 g)"
+        },
+        {
+          "name": "Ser typu Feta",
+          "amount": 4.0,
+          "unit": "plastry",
+          "metric_amount": 100.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Ser typu Feta – 4 plastry (100 g)"
+        },
+        {
+          "name": "Papryka czerwona",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 170.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Papryka czerwona – 1 sztuka (170 g)"
+        },
+        {
+          "name": "Cebula",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 80.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Cebula – 1 sztuka (80 g)"
+        },
+        {
+          "name": "Pomidorki koktajlowe",
+          "amount": 10.0,
+          "unit": "sztuk",
+          "metric_amount": 200.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pomidorki koktajlowe – 10 sztuk (200 g)"
+        },
+        {
+          "name": "Oliwa z oliwek",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Oliwa z oliwek – 1 łyżeczka (5 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        },
+        {
+          "name": "Pieprz czarny",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+        }
+      ],
+      "steps": null,
+      "source": null
+    }
+  }
+}

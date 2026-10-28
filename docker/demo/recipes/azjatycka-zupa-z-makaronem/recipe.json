@@ -1,0 +1,195 @@
+{
+  "schema_version": 2,
+  "id": "azjatycka-zupa-z-makaronem",
+  "title": "Azjatycka zupa z makaronem",
+  "version": 1,
+  "image": "image.png",
+  "steps": [
+    "Makaron przygotowujemy według instrukcji na opakowaniu.",
+    "Blendujemy: imbir, kolendrę świeżą, skórkę z cytryny, papryczkę chilli, sól oraz olej.",
+    "Zblendowaną pastę podsmażamy w rondelku. Dodajemy cynamon, drobno posiekany czosnek, pokrojoną w paski paprykę oraz posiekaną cebulę. Całość podsmażamy 3 minuty, dodajemy mleczko kokosowe oraz bulion warzywny, gotujemy 5 minut.",
+    "Udko kurczęce kroimy w cienkie paski i dodajemy do gotującej się zupy. Gotujemy jeszcze przez 6 minut, dodajemy sos sojowy oraz sok z cytryny. Doprawiamy solą.",
+    "Zupę podajemy z makaronem. Smacznego!"
+  ],
+  "notes": [],
+  "meal_types": [
+    "lunch"
+  ],
+  "dish_types": [],
+  "user": {
+    "favorite": true,
+    "notes": "",
+    "tags": [],
+    "meal_types": null,
+    "dish_types": null,
+    "preparation_minutes": null
+  },
+  "created_at": null,
+  "updated_at": null,
+  "suggested_batch_portions": null,
+  "variants": {
+    "female": {
+      "servings": 1,
+      "nutrition": {
+        "kcal": 589.0,
+        "protein_g": 32.0,
+        "fat_g": 22.0,
+        "carbs_g": 71.0
+      },
+      "ingredients": [
+        {
+          "name": "Makaron ryżowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Makaron ryżowy – 60 g"
+        },
+        {
+          "name": "Papryka czerwona",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 170.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Papryka czerwona – 1 sztuka (170 g)"
+        },
+        {
+          "name": "Mleczko kokosowe 12%",
+          "amount": 3.0,
+          "unit": "łyżki",
+          "metric_amount": 60.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Mleczko kokosowe 12% – 3 łyżki (60 g)"
+        },
+        {
+          "name": "Udo kurczaka (bez skóry i kości)",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 120.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Udo kurczaka (bez skóry i kości) – 120 g"
+        },
+        {
+          "name": "Imbir",
+          "amount": 1.0,
+          "unit": "plaster",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Imbir – 1 plaster (5 g)"
+        },
+        {
+          "name": "Bulion warzywny (po rozrobieniu ze słoiczka)",
+          "amount": 1.0,
+          "unit": "szklanka",
+          "metric_amount": 250.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Bulion warzywny (po rozrobieniu ze słoiczka) – 1 szklanka (250 g)"
+        },
+        {
+          "name": "Papryczka chilli",
+          "amount": 0.5,
+          "unit": "szt.",
+          "metric_amount": 10.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": null
+        },
+        {
+          "name": "Cebula",
+          "amount": 0.5,
+          "unit": "sztuki",
+          "metric_amount": 40.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Cebula – 0.5 sztuki (40 g)"
+        },
+        {
+          "name": "Skórka z cytryny",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 3.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Skórka z cytryny – 1 łyżeczka (3 g)"
+        },
+        {
+          "name": "Sok z cytryny",
+          "amount": 2.0,
+          "unit": "łyżki",
+          "metric_amount": 12.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sok z cytryny – 2 łyżki (12 g)"
+        },
+        {
+          "name": "Kolendra świeża",
+          "amount": 0.5,
+          "unit": "garści",
+          "metric_amount": 2.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Kolendra świeża – 0.5 garści (2 g)"
+        },
+        {
+          "name": "Czosnek świeży",
+          "amount": 1.0,
+          "unit": "ząbek",
+          "metric_amount": 6.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Czosnek świeży – 1 ząbek (6 g)"
+        },
+        {
+          "name": "Olej rzepakowy",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Olej rzepakowy – 1 łyżeczka (5 g)"
+        },
+        {
+          "name": "Cynamon mielony",
+          "amount": 0.5,
+          "unit": "łyżeczki",
+          "metric_amount": 2.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Cynamon mielony – 0.5 łyżeczki (2 g)"
+        },
+        {
+          "name": "Sos sojowy",
+          "amount": 1.0,
+          "unit": "łyżka",
+          "metric_amount": 10.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sos sojowy – 1 łyżka (10 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        }
+      ],
+      "steps": [
+        "Makaron przygotowujemy według instrukcji na opakowaniu.",
+        "Blendujemy: imbir, kolendrę świeżą, skórkę z cytryny, papryczkę chilli, sól oraz olej.",
+        "Zblendowaną pastę podsmażamy w rondelku. Dodajemy cynamon, drobno posiekany czosnek, pokrojoną w paski paprykę oraz posiekaną cebulę. Całość podsmażamy 3 minuty, dodajemy mleczko kokosowe oraz bulion warzywny, gotujemy 5 minut.",
+        "Udko kurczęce kroimy w cienkie paski i dodajemy do gotującej się zupy. Gotujemy jeszcze przez 6 minut, dodajemy sos sojowy oraz sok z cytryny. Doprawiamy solą.",
+        "Zupę podajemy z makaronem. Smacznego!"
+      ],
+      "source": null
+    }
+  }
+}
