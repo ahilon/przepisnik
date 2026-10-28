@@ -1,0 +1,190 @@
+{
+  "schema_version": 2,
+  "id": "burgery-z-grilla",
+  "title": "Burgery z grilla",
+  "version": 1,
+  "image": "image.png",
+  "steps": [
+    "W misce mieszamy mięso z przyprawami. Dodajemy czosnek przeciśnięty przez praskę, ponownie mieszamy. Formujemy burgery.",
+    "W miseczce mieszamy składniki sosu.",
+    "Pomidora kroimy na plasterki.",
+    "Rozgrzewamy grilla lub patelnię grillową i smażymy burgery po ok. 5 minut z jednej i drugiej strony. Po tym czasie możemy delikatnie naciąć burgera i sprawdzić, czy mięso w środku ma jasny kolor. W razie potrzeby grillujemy burgera jeszcze przez chwilkę.",
+    "Pod koniec grillowania burgera umieszczamy na nim ser, by się rozpuścił.",
+    "Na połowie pieczywa układamy sałatę, burger z serem, pomidora, polewamy sosem i przykrywamy drugą połową bułki."
+  ],
+  "notes": [],
+  "meal_types": [
+    "lunch"
+  ],
+  "dish_types": [],
+  "user": {
+    "favorite": false,
+    "notes": "",
+    "tags": [],
+    "meal_types": null,
+    "dish_types": null,
+    "preparation_minutes": null
+  },
+  "created_at": null,
+  "updated_at": null,
+  "suggested_batch_portions": null,
+  "variants": {
+    "male": {
+      "servings": 1,
+      "nutrition": {
+        "kcal": 571.0,
+        "protein_g": 36.0,
+        "fat_g": 23.0,
+        "carbs_g": 57.0
+      },
+      "ingredients": [
+        {
+          "name": "Bułka grahamka",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 70.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Bułka grahamka – 1 sztuka (70 g)"
+        },
+        {
+          "name": "Mięso mielone z kurczaka",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 100.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Mięso mielone z kurczaka – 100 g"
+        },
+        {
+          "name": "Papryka wędzona",
+          "amount": 0.5,
+          "unit": "łyżeczki",
+          "metric_amount": 1.5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Papryka wędzona – 0.5 łyżeczki (1.5 g)"
+        },
+        {
+          "name": "Papryka ostra suszona",
+          "amount": 0.5,
+          "unit": "łyżeczki",
+          "metric_amount": 1.5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Papryka ostra suszona – 0.5 łyżeczki (1.5 g)"
+        },
+        {
+          "name": "Zioła prowansalskie",
+          "amount": 0.5,
+          "unit": "łyżeczki",
+          "metric_amount": 1.5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Zioła prowansalskie – 0.5 łyżeczki (1.5 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        },
+        {
+          "name": "Czosnek świeży",
+          "amount": 1.0,
+          "unit": "ząbek",
+          "metric_amount": 6.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Czosnek świeży – 1 ząbek (6 g)"
+        },
+        {
+          "name": "Ser cheddar",
+          "amount": 2.0,
+          "unit": "plastry",
+          "metric_amount": 30.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Ser cheddar – 2 plastry (30 g)"
+        },
+        {
+          "name": "Miks sałat",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 25.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Miks sałat – 25 g"
+        },
+        {
+          "name": "Pomidor",
+          "amount": 2.0,
+          "unit": "plastry",
+          "metric_amount": 40.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pomidor – 2 plastry (40 g)"
+        },
+        {
+          "name": "Miód",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 12.0,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Miód – 1 łyżeczka (12 g)"
+        },
+        {
+          "name": "Majonez",
+          "amount": 0.5,
+          "unit": "łyżeczki",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Majonez – 0.5 łyżeczki (5 g)"
+        },
+        {
+          "name": "Musztarda",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 10.0,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Musztarda – 1 łyżeczka (10 g)"
+        },
+        {
+          "name": "Ocet jabłkowy",
+          "amount": 0.5,
+          "unit": "łyżki",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Ocet jabłkowy – 0.5 łyżki (5 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        },
+        {
+          "name": "Pieprz czarny",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": "Sos",
+          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+        }
+      ],
+      "steps": null,
+      "source": null
+    }
+  }
+}

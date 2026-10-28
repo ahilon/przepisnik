@@ -1,0 +1,184 @@
+{
+  "schema_version": 2,
+  "id": "bajgiel-z-domowym-twarozkiem",
+  "title": "Bajgiel z domowym twarożkiem",
+  "version": 1,
+  "image": "image.png",
+  "steps": [
+    "Bajgiel przekrajamy wzdłuż na dwie równe części.",
+    "Twaróg rozgniatamy widelcem w miseczce. Dodajemy jogurt i mieszamy do uzyskania kremowej konsystencji. Doprawiamy solą oraz pieprzem według własnego uznania",
+    "Szczypiorek drobno siekamy. Pomidora kroimy na mniejsze kawałki.",
+    "Bajgla smarujemy przygotowanym twarożkiem. Na wierzchu układamy pomidora, następnie posypujemy szczypiorkiem.",
+    "Bajgiel można pozostawić otwarty lub złożyć w formę kanapki."
+  ],
+  "notes": [],
+  "meal_types": [
+    "breakfast"
+  ],
+  "dish_types": [],
+  "user": {
+    "favorite": false,
+    "notes": "",
+    "tags": [],
+    "meal_types": null,
+    "dish_types": null,
+    "preparation_minutes": null
+  },
+  "created_at": null,
+  "updated_at": null,
+  "suggested_batch_portions": null,
+  "variants": {
+    "female": {
+      "servings": 1,
+      "nutrition": {
+        "kcal": 494.0,
+        "protein_g": 40.0,
+        "fat_g": 16.0,
+        "carbs_g": 50.0
+      },
+      "ingredients": [
+        {
+          "name": "Bajgiel z sezamem",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 75.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Bajgiel z sezamem – 1 sztuka (75 g)"
+        },
+        {
+          "name": "Ser twarogowy półtłusty",
+          "amount": 5.0,
+          "unit": "plastrów",
+          "metric_amount": 150.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Ser twarogowy półtłusty – 5 plastrów (150 g)"
+        },
+        {
+          "name": "Jogurt grecki",
+          "amount": 4.0,
+          "unit": "łyżki",
+          "metric_amount": 80.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Jogurt grecki – 4 łyżki (80 g)"
+        },
+        {
+          "name": "Szczypiorek siekany",
+          "amount": 1.0,
+          "unit": "łyżeczka",
+          "metric_amount": 5.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Szczypiorek siekany – 1 łyżeczka (5 g)"
+        },
+        {
+          "name": "Pomidor",
+          "amount": 0.5,
+          "unit": "sztuki",
+          "metric_amount": 80.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pomidor – 0.5 sztuki (80 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        },
+        {
+          "name": "Pieprz czarny",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+        }
+      ],
+      "steps": null,
+      "source": null
+    },
+    "male": {
+      "servings": 1,
+      "nutrition": {
+        "kcal": 709.0,
+        "protein_g": 48.0,
+        "fat_g": 18.0,
+        "carbs_g": 91.0
+      },
+      "ingredients": [
+        {
+          "name": "Bajgiel z sezamem",
+          "amount": 2.0,
+          "unit": "sztuki",
+          "metric_amount": 150.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Bajgiel z sezamem – 2 sztuki (150 g)"
+        },
+        {
+          "name": "Ser twarogowy półtłusty",
+          "amount": 5.0,
+          "unit": "plastrów",
+          "metric_amount": 150.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Ser twarogowy półtłusty – 5 plastrów (150 g)"
+        },
+        {
+          "name": "Jogurt grecki",
+          "amount": 4.0,
+          "unit": "łyżki",
+          "metric_amount": 80.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Jogurt grecki – 4 łyżki (80 g)"
+        },
+        {
+          "name": "Szczypiorek siekany",
+          "amount": 2.0,
+          "unit": "łyżeczki",
+          "metric_amount": 10.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Szczypiorek siekany – 2 łyżeczki (10 g)"
+        },
+        {
+          "name": "Pomidor",
+          "amount": 1.0,
+          "unit": "sztuka",
+          "metric_amount": 160.0,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pomidor – 1 sztuka (160 g)"
+        },
+        {
+          "name": "Sól",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sól – 1 szczypta (0.25 g)"
+        },
+        {
+          "name": "Pieprz czarny",
+          "amount": 1.0,
+          "unit": "szczypta",
+          "metric_amount": 0.25,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+        }
+      ],
+      "steps": null,
+      "source": null
+    }
+  }
+}

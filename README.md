@@ -36,6 +36,9 @@ using the drag handle or the up/down buttons. Numbering follows the saved order.
 
 For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
 
+For an isolated Docker environment with six sample recipes, see the
+[Docker demo instructions](docker/demo/README.md).
+
 ```bash
 uv sync
 ```

@@ -1,0 +1,49 @@
+# Docker demo environment
+
+Install Docker Engine with Compose v2 (Docker Desktop with Linux containers on Windows).
+Run these commands from the repository root:
+
+```sh
+docker compose -f docker/docker-compose.yaml up --build -d --wait
+```
+
+Open http://localhost:8001. This environment contains six sample recipes, seven
+variants and one favorite. Each recipe has its own JSON and food image:
+
+```text
+docker/demo/recipes/<recipe-id>/
+  recipe.json
+  image.png
+```
+
+Fixtures are snapshots from the local collection with personal metadata, notes and
+source details removed. Startup copies the folders into a fresh demo volume and runs
+the existing `migrate-json` command to populate SQLite. SQLite remains the application's
+active store; fixture JSON files are not rewritten when editing in the UI.
+
+The application runs as a non-root user. Only the local computer can access the
+published port. A dedicated named volume stores SQLite and images; the host `data/`
+directory and personal sources are excluded from the build context and never mounted.
+Restarting or rebuilding preserves manual edits. Fixture changes apply to fresh volumes.
+If upgrading from the previous single-JSON fixtures, use the reset commands below to
+load the recipe folders and photos. This deletes manual edits in the demo volume.
+
+```sh
+# Inspect status and server output.
+docker compose -f docker/docker-compose.yaml ps
+docker compose -f docker/docker-compose.yaml logs app
+
+# Stop containers while preserving demo data.
+docker compose -f docker/docker-compose.yaml down
+
+# Delete this environment's demo data, then recreate the six original recipes.
+docker compose -f docker/docker-compose.yaml down --volumes
+docker compose -f docker/docker-compose.yaml up --build -d --wait
+```
+
+The healthcheck reads the recipe API; Compose waits for readiness instead of sleeping
+for a fixed interval. An occupied host port 8001 fails startup. Stop the conflicting
+process; if changing the port, also update the browser origins in `server.toml`.
+
+This is a disposable development/demo image, not a production deployment. Pytest,
+Playwright and GitHub Actions integration will be added separately.
