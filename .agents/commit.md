@@ -31,17 +31,22 @@ Use `[project].version` in `pyproject.toml` and MAJOR.MINOR.PATCH:
 | --- | --- |
 | MAJOR | Breaking changes, major code changes, major release or a large refactor |
 | MINOR | New functionality |
-| PATCH | Bug fixes and small runtime maintenance changes |
+| PATCH | Bug fixes, maintenance, documentation, tests, Docker, CI/CD and agent rules |
 
-Reset parts to the right when incrementing MAJOR or MINOR. Documentation-only,
-test-only and agent-instruction-only commits do not require a package version bump.
-Use the latest reachable release tag as the baseline where available; otherwise inspect
-the locally available default branch and version history. Do not equate every commit
-with a release, repeatedly bump an already sufficient pending version, or downgrade it.
-Ask when an ambiguous release baseline would change the version decision.
+Every PR must introduce a new package version and a changelog entry, without exceptions
+for documentation, tests, infrastructure, formatting or agent instructions. Reset parts
+to the right when incrementing MAJOR or MINOR. Use at least PATCH unless the PR requires
+MINOR or MAJOR. Compare against the PR target branch (normally main), not an older
+release tag. An already sufficient version bump within this same PR need not be repeated
+for each commit, but a new PR must have a higher version than its target branch.
+If the target changes, recheck before committing. Never downgrade a version.
 
-For versioned changes add a short English entry under `## Unreleased` in `CHANGELOG.md`
-(the project has a dedicated changelog). Update README only when user-facing behavior
+For every PR add a short English entry in `CHANGELOG.md`, grouped under the new package
+version, for example `## [1.4.1] - Unreleased`. Update that PR's entry as its scope changes;
+do not add duplicate entries per commit. Review the complete PR scope and final staged
+diff against the changelog before committing. Automatically prepare and stage required
+version, lockfile and changelog changes while preserving unrelated user edits.
+Update README only when user-facing behavior
 or documented version status changes; avoid duplicating the changelog there.
 
 After editing the version or dependencies, run `uv sync`, review and stage the intended
