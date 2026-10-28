@@ -9,13 +9,14 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.4.0**: configurable server addresses and allowed
+The current work targets **1.4.1**: Docker demo infrastructure and per-PR release rules.
+Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
 filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.4.0 is not released; package metadata declares 1.4.0.
+Version 1.4.1 is not released; package metadata declares 1.4.1.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,

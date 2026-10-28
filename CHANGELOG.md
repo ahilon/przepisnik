@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [1.4.1] - Unreleased
+
+- Added an isolated Docker Compose demo with six recipe folders and photos,
+  a dedicated data volume, healthcheck and reset instructions.
+- Added GitHub code owners for the repository and tests.
+- Required a new package version and changelog entry for every PR, including
+  documentation, test infrastructure and agent rules.
+
+## [1.4.0]
+
 - Added configurable server addresses and allowed origins for home-network access.
 - Added instance setup documentation and repository commit rules.
 - Added transactional SQLite migrations with pre-upgrade backups.
