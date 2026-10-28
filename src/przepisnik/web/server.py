@@ -1,4 +1,4 @@
-"""Loopback recipe editor; one SQLite connection per request."""
+"""Configurable recipe editor; one SQLite connection per request."""
 
 from __future__ import annotations
 
@@ -21,6 +21,7 @@ from przepisnik.core.database import DATABASE_NAME, SqliteStore
 from przepisnik.core.models import DishType, ImageData, MealType, Recipe, VariantKind, slugify
 from przepisnik.core.recipes import RecipeFilters, select_recipes
 from przepisnik.errors import StoreError
+from przepisnik.web.config import ServerConfig
 
 if TYPE_CHECKING:
     from socket import socket
@@ -44,17 +45,17 @@ class RecipeHandler(BaseHTTPRequestHandler):
         server: ThreadingHTTPServer,
         *,
         data_dir: Path,
+        config: ServerConfig,
     ) -> None:
         """Inject the configured data directory into each request handler."""
         self._data_dir = data_dir
-        self._port = server.server_port
+        self._config = config
         super().__init__(request, client_address, server)
 
     def do_GET(self) -> None:
         """Dispatch reads without exposing arbitrary filesystem paths."""
         host = self.headers.get("Host", "")
-        port = self._port
-        if host not in {f"localhost:{port}", f"127.0.0.1:{port}"}:
+        if host not in self._config.allowed_hosts:
             self._json({"error": "Niedozwolony adres serwera."}, HTTPStatus.FORBIDDEN)
             return
         try:
@@ -106,8 +107,9 @@ class RecipeHandler(BaseHTTPRequestHandler):
         """Validate same-origin writes and persist a recipe in a transaction."""
         host = self.headers.get("Host", "")
         origin = self.headers.get("Origin")
-        if host not in {f"localhost:{self._port}", f"127.0.0.1:{self._port}"} or (
-            origin and origin != f"http://{host}"
+        if host not in self._config.allowed_hosts or (
+            origin is not None
+            and (origin not in self._config.allowed_origins or urlsplit(origin).netloc != host)
         ):
             self._json({"error": "Niedozwolone źródło zapisu."}, HTTPStatus.FORBIDDEN)
             return
@@ -283,14 +285,14 @@ def _summary(recipe: Recipe) -> dict[str, object]:
     }
 
 
-def serve(data_dir: Path, port: int = 8000) -> None:
-    """Run the local browser until interrupted; never bind a public interface."""
+def serve(data_dir: Path, config: ServerConfig) -> None:
+    """Run the browser using explicitly configured network settings."""
     if not (data_dir / DATABASE_NAME).is_file():
         raise StoreError("No SQLite database found; run migrate-json before starting the browser")
     with SqliteStore(data_dir) as store:
         store.all()  # Validate data before announcing a running application.
-    handler = partial(RecipeHandler, data_dir=data_dir.resolve())
-    with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
+    handler = partial(RecipeHandler, data_dir=data_dir.resolve(), config=config)
+    with ThreadingHTTPServer((config.host, config.port), handler) as server:
         try:
             server.serve_forever()
         except KeyboardInterrupt:

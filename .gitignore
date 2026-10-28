@@ -22,3 +22,6 @@ data/
 
 # Local implementation checklist
 /PLAN.local.md
+
+# Per-instance network settings
+/przepisnik.toml
