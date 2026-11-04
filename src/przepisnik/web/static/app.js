@@ -51,11 +51,6 @@ function card(recipe) {
   button.type = "button";
   button.setAttribute("aria-label", `Otwórz przepis: ${recipe.title}`);
   const image = photo(recipe.image_url, recipe.title, "photo");
-  if (recipe.favorite) {
-    const favorite = element("span", "favorite-mark", "♥");
-    favorite.setAttribute("aria-label", "Ulubiony przepis");
-    image.append(favorite);
-  }
   const body = element("div", "card-body");
   body.append(badges(recipe.meal_types, recipe.dish_types), element("h3", "", recipe.title));
   const meta = element("div", "card-meta");
@@ -65,8 +60,38 @@ function card(recipe) {
   body.append(meta);
   button.append(image, body);
   button.addEventListener("click", () => openRecipe(recipe.id));
-  article.append(button);
+  article.append(button, favoriteButton(recipe, true));
   return article;
+}
+function favoriteButton(recipe, compact = false) {
+  const favorite = recipe.user?.favorite ?? recipe.favorite;
+  const label = favorite ? "Usuń z ulubionych" : "Dodaj do ulubionych";
+  const button = element("button", compact ? "favorite-toggle" : "secondary", compact ? (favorite ? "♥" : "♡") : label);
+  button.type = "button"; button.title = label;
+  button.setAttribute("aria-label", `${label}: ${recipe.title}`);
+  button.setAttribute("aria-pressed", String(favorite));
+  let notice = null;
+  button.addEventListener("click", async () => {
+    button.disabled = true; notice?.remove();
+    try {
+      const current = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
+      const response = await fetch(`/api/recipes/${encodeURIComponent(recipe.id)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipe: { user: { ...current.user, favorite: !favorite } }, updated_at: current.updated_at })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Nie udało się zmienić ulubionych.");
+      await loadRecipes();
+      if ($("#detail").open && detailRecipe?.id === recipe.id) {
+        const updated = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
+        if ($("#detail").open && detailRecipe?.id === recipe.id) { detailRecipe = updated; renderDetail(); }
+      }
+    } catch (failure) {
+      notice = element("p", "error", failure.message); notice.setAttribute("role", "alert");
+      button.insertAdjacentElement("afterend", notice);
+    } finally { button.disabled = false; }
+  });
+  return button;
 }
 function query() {
   const params = new URLSearchParams({ page: String(state.page) });
@@ -183,7 +208,8 @@ function renderDetail() {
   const edit = element("button", "primary", "Edytuj przepis");
   edit.type = "button";
   edit.addEventListener("click", () => openEditor(recipe));
-  inner.append(edit);
+  const actions = element("div", "detail-actions");
+  actions.append(edit, favoriteButton(recipe)); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
@@ -452,6 +478,12 @@ $("#recipe-form").addEventListener("submit", async event => {
   const save = form.querySelector('[type="submit"]'); const error = $("#editor-error");
   error.hidden = true; save.disabled = true;
   const checked = name => [...form.querySelectorAll(`input[name="${name}"]:checked`)].map(input => input.value);
+  const categories = (name, field) => {
+    const values = checked(name);
+    const effective = editingRecipe?.[`effective_${field}`];
+    return effective && values.length === new Set(effective).size && values.every(value => effective.includes(value))
+      ? editingRecipe.user[field] : values;
+  };
   try {
     const variants = {};
     for (const fieldset of form.querySelectorAll(".editor-variant")) {
@@ -461,14 +493,16 @@ $("#recipe-form").addEventListener("submit", async event => {
       const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
       if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
       const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
+      const steps = [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim());
+      if (steps.some(step => !step)) throw new Error("Uzupełnij treść każdego kroku.");
       variants[editingRecipe ? kind : $("#edit-kind").value] = {
         ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
-        steps: [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim())
+        steps: original && JSON.stringify(steps) === JSON.stringify(original.steps || editingRecipe.steps)
+          ? original.steps : steps
       };
     }
     const preparationMinutes = Number($("#edit-hours").value) * 60 + Number($("#edit-minutes").value);
     if (($("#edit-hours").value !== "" || $("#edit-minutes").value !== "") && (!Number.isSafeInteger(preparationMinutes) || preparationMinutes <= 0)) throw new Error("Czas przygotowania musi wynosić co najmniej minutę lub pozostać pusty.");
-    if (Object.values(variants).some(variant => variant.steps.some(step => !step))) throw new Error("Uzupełnij treść każdego kroku.");
     const recipe = {
       title: $("#edit-title").value.trim(),
       steps: editingRecipe?.steps || Object.values(variants)[0].steps,
@@ -476,7 +510,7 @@ $("#recipe-form").addEventListener("submit", async event => {
       user: { ...editingRecipe?.user, favorite: $("#edit-favorite").checked,
         notes: $("#edit-notes").value, tags: $("#edit-tags").value.split(",").map(tag => tag.trim()).filter(Boolean),
         preparation_minutes: preparationMinutes || null,
-        meal_types: checked("edit-meals"), dish_types: checked("edit-dishes") }
+        meal_types: categories("edit-meals", "meal_types"), dish_types: categories("edit-dishes", "dish_types") }
     };
     const file = $("#edit-image").files[0];
     if (file && file.size > 8000000) throw new Error("Zdjęcie przekracza limit 8 MB.");
@@ -487,6 +521,10 @@ $("#recipe-form").addEventListener("submit", async event => {
     const body = await response.json(); if (!response.ok) throw new Error(body.error || "Nie udało się zapisać przepisu.");
     $("#editor").close();
     await loadRecipes(); await openRecipe(body.id);
+    if (body.changed === false) {
+      const notice = element("p", "detail-hint", "Brak zmian — przepis pozostał bez zmian.");
+      notice.setAttribute("role", "status"); $("#detail-content .detail-inner").prepend(notice);
+    }
   } catch (failure) { error.textContent = failure.message; error.hidden = false; }
   finally { save.disabled = false; }
 });
