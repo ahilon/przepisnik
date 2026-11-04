@@ -1,6 +1,6 @@
 [project]
 name = "przepisnik"
-version = "1.4.3"
+version = "1.4.4"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
 authors = [
@@ -43,6 +43,8 @@ ignore = ["D105", "D107"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/przepisnik/cli.py" = ["T20"]
+# Pytest assertions express test expectations, not application security checks.
+"tests/**/*.py" = ["S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
