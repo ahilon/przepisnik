@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.4.2] - Unreleased
+
+- Fixed recipe editor fields over HTTP on home-network addresses by removing
+  their dependency on the secure-context-only `crypto.randomUUID()` API.
+- Added Playwright and pytest development dependencies, browser test scaffolding,
+  recording instructions and ignored test/cache output directories.
+
 ## [1.4.1] - Unreleased
 
 - Added an isolated Docker Compose demo with six recipe folders and photos,

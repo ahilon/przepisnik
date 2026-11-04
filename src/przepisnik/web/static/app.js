@@ -281,6 +281,7 @@ loadRecipes();
 
 let editingRecipe = null;
 let previewUrl = null;
+let editorFieldSequence = 0;
 function editorField(parent, id, title, value = "", type = "text") {
   const label = element("label", "", title); label.htmlFor = id;
   const input = element(type === "textarea" ? "textarea" : "input");
@@ -312,7 +313,7 @@ function ingredientFields(parent, kind, ingredients) {
   const list = element("div", "ingredient-editor"); parent.append(units, list);
   function add(ingredient = {}) {
     const row = element("div", "ingredient-row"); row.originalIngredient = ingredient;
-    const id = `${kind}-ingredient-${crypto.randomUUID()}`;
+    const id = `${kind}-ingredient-${++editorFieldSequence}`;
     const nameBox = element("div"); const amountBox = element("div"); const unitBox = element("div");
     const name = editorField(nameBox, `${id}-name`, "Nazwa składnika", ingredient.name); name.required = true; name.dataset.field = "name";
     const amount = editorField(amountBox, `${id}-amount`, "Ilość", ingredient.amount, "number"); amount.dataset.field = "amount";
@@ -358,7 +359,7 @@ function stepFields(parent, kind, steps) {
     handle.addEventListener("dragstart", event => { dragged = row; event.dataTransfer.setData("text/plain", "step"); event.dataTransfer.effectAllowed = "move"; row.classList.add("dragging"); });
     handle.addEventListener("dragend", () => { dragged = null; row.classList.remove("dragging"); });
     const box = element("div", "step-content");
-    const input = editorField(box, `${kind}-step-${crypto.randomUUID()}`, "Krok", text, "textarea"); input.required = true;
+    const input = editorField(box, `${kind}-step-${++editorFieldSequence}`, "Krok", text, "textarea"); input.required = true;
     const controls = element("div", "row-actions");
     const up = rowButton("↑", () => { if (row.previousElementSibling) list.insertBefore(row, row.previousElementSibling); renumber(); up.focus(); }); up.dataset.move = "up"; up.setAttribute("aria-label", "Przesuń krok w górę");
     const down = rowButton("↓", () => { if (row.nextElementSibling) list.insertBefore(row.nextElementSibling, row); renumber(); down.focus(); }); down.dataset.move = "down"; down.setAttribute("aria-label", "Przesuń krok w dół");
