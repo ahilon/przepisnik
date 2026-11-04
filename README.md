@@ -9,14 +9,14 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.4.2**: HTTP recipe editor fixes and browser test setup.
+The current work targets **1.4.3**: unchanged recipe saves and favorite controls.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
 filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.4.2 is not released; package metadata declares 1.4.2.
+Version 1.4.3 is not released; package metadata declares 1.4.3.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,
@@ -131,6 +131,15 @@ Photos support PNG, JPEG, WebP and GIF up to 8 MB, with a preview before saving.
 Recipes without a photo display `data/empty_dish.png`. Editing without selecting
 a new photo keeps the existing photo. Conflicting edits from another tab are rejected;
 reopen the recipe to load the latest version before editing again.
+
+Saving unchanged validated recipe content skips the database update and retains
+`updated_at`, including when the same photo is uploaded again. The editor preserves
+inherited categories and preparation steps when they are not changed. The API
+returns `changed: false` and the browser displays a no-change notice. Saving a real
+change and later saving its reversal still performs two updates.
+
+Favorites can be toggled directly using the heart on each card or the button in
+recipe details. Both refresh the favorite count and active filters after saving.
 
 The application uses Python's standard HTTP server and bundled HTML/CSS/JavaScript,
 with no frontend build or additional dependencies.

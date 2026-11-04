@@ -106,16 +106,25 @@ class SqliteStore:
         return sorted((self._recipe(row[0]) for row in rows), key=lambda recipe: recipe.version)
 
     def save(self, recipe: Recipe, image: ImageData | None = None) -> Recipe:
-        """Validate and save within the caller's transaction; preserve creation time."""
+        """Save changed validated content, preserving timestamps for unchanged recipes."""
         current = self.get(recipe.id)
-        now = utc_now()
         changes: dict[str, object] = {
-            "updated_at": now,
-            "created_at": (current.created_at if current else recipe.created_at) or now,
+            "created_at": current.created_at if current else recipe.created_at,
         }
         if image is not None:
-            changes["image"] = self._save_image(recipe.id, image)
+            changes["image"] = self._save_image(
+                recipe.id, image, current.image if current else None
+            )
         validated = Recipe.model_validate({**recipe.model_dump(), **changes})
+        timestamps = {"created_at", "updated_at"}
+        if current and validated.model_dump(exclude=timestamps) == current.model_dump(
+            exclude=timestamps
+        ):
+            return current
+        now = utc_now()
+        validated = validated.model_copy(
+            update={"created_at": validated.created_at or now, "updated_at": now}
+        )
         self._connection.execute(
             "INSERT INTO recipes(id, title_key, payload) VALUES (?, ?, ?) "
             "ON CONFLICT(id) DO UPDATE SET title_key=excluded.title_key, payload=excluded.payload",
@@ -172,13 +181,17 @@ class SqliteStore:
             "INSERT OR IGNORE INTO app_state(key, value) VALUES ('legacy_migrated', '1')"
         )
 
-    def _save_image(self, recipe_id: str, image: ImageData) -> str:
+    def _save_image(self, recipe_id: str, image: ImageData, existing: str | None = None) -> str:
         extension = image.extension.lower()
         if extension not in IMAGE_EXTENSIONS:
             raise StoreError(f"Unsupported image extension: {extension}")
+        directory = self.data_dir / "recipes" / recipe_id
+        if existing:
+            current_path = directory / existing
+            if current_path.is_file() and current_path.read_bytes() == image.content:
+                return existing
         digest = hashlib.sha256(image.content).hexdigest()
         name = f"image-{digest}.{extension}"
-        directory = self.data_dir / "recipes" / recipe_id
         directory.mkdir(parents=True, exist_ok=True)
         # Content-addressed files never overwrite a photo referenced by committed data.
         path = directory / name

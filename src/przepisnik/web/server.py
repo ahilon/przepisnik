@@ -160,7 +160,13 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 identity = current.id if current else f"recipe-{secrets.token_hex(8)}"
                 recipe = Recipe.model_validate({**original, **fields, "id": identity})
                 saved = store.save(recipe, image)
-            self._json({"id": saved.id}, HTTPStatus.CREATED if creating else HTTPStatus.OK)
+            self._json(
+                {
+                    "id": saved.id,
+                    "changed": current is None or saved.updated_at != current.updated_at,
+                },
+                HTTPStatus.CREATED if creating else HTTPStatus.OK,
+            )
         except (ValueError, KeyError, TypeError):
             self._json(
                 {"error": "Sprawdź formularz i zdjęcie. Wymagane: nazwa, składniki i kroki."},

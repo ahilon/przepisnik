@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.4.3] - Unreleased
+
+- Skip database updates and preserve timestamps when validated recipe content is
+  unchanged, including repeated uploads of the same photo.
+- Preserve inherited categories and preparation steps when saving unchanged forms,
+  and report unchanged saves in the API and browser.
+- Make favorites actionable from recipe cards and details, refreshing counters and
+  active filters while preserving other recipe content.
+
 ## [1.4.2] - Unreleased
 
 - Fixed recipe editor fields over HTTP on home-network addresses by removing
