@@ -9,14 +9,14 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.4.1**: Docker demo infrastructure and per-PR release rules.
+The current work targets **1.4.2**: HTTP recipe editor fixes and browser test setup.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
 filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.4.1 is not released; package metadata declares 1.4.1.
+Version 1.4.2 is not released; package metadata declares 1.4.2.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,
@@ -46,6 +46,28 @@ uv sync
 
 The project uses uv and `uv.lock` for environments and reproducible dependencies.
 SQLite is provided by Python's standard library; no database service is required.
+
+### Browser tests
+
+Install Chromium once after syncing development dependencies:
+
+```bash
+uv run playwright install chromium
+```
+
+Start the application with `uv run przepisnik serve`. In a second terminal,
+record a pytest test (create the `tests` directory first if needed):
+
+```bash
+uv run playwright codegen --target python-pytest -o tests/test_sanity.py http://localhost:8000
+```
+
+Use the recorder's assertion tools to check expected page content, then close
+the recorder and run the saved test while the application is still running:
+
+```bash
+uv run pytest tests/test_sanity.py --headed
+```
 
 Project skills live in `.agents/skills/` (read by Codex). Link them for
 Claude Code once per clone:
