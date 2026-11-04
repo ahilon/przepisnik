@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.4.4] - Unreleased
+
+- Run browser tests against a fresh temporary recipe database and local HTTP
+  server for each test, leaving production and persistent Docker demo data untouched.
+- Replace the empty sanity template with favorite persistence/removal coverage
+  and checks that recipe mutations do not leak between tests.
+- Avoid pytest-playwright's deprecated instance-method base URL fixture while
+  preserving CLI/configuration options, and document the isolated test workflow.
+
 ## [1.4.3] - Unreleased
 
 - Skip database updates and preserve timestamps when validated recipe content is
