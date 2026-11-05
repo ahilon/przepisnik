@@ -11,6 +11,7 @@ import sqlite3
 from functools import partial
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlsplit
@@ -20,6 +21,12 @@ from pydantic import ValidationError
 from przepisnik.core.database import DATABASE_NAME, SqliteStore
 from przepisnik.core.models import DishType, ImageData, MealType, Recipe, VariantKind, slugify
 from przepisnik.core.recipes import RecipeFilters, select_recipes
+from przepisnik.core.shopping import (
+    ShoppingConflictError,
+    ShoppingList,
+    load_shopping_list,
+    save_shopping_list,
+)
 from przepisnik.errors import StoreError
 from przepisnik.web.config import ServerConfig
 
@@ -71,19 +78,33 @@ class RecipeHandler(BaseHTTPRequestHandler):
 
     def _dispatch(self) -> None:
         location = urlsplit(self.path)
-        assets = {"/": "index.html", "/app.css": "app.css", "/app.js": "app.js"}
+        assets = {
+            "/": "index.html",
+            "/app.css": "app.css",
+            "/app.js": "app.js",
+            "/shopping.js": "shopping.js",
+        }
         if location.path in assets:
             self._file(STATIC_DIR / assets[location.path])
+            return
+        if location.path == "/api/version":
+            self._json({"version": version("przepisnik")})
             return
         if location.path == "/empty_dish.png":
             self._file(self._data_dir / "empty_dish.png")
             return
+        self._read_data(location.path, parse_qs(location.query))
+
+    def _read_data(self, path: str, query: dict[str, list[str]]) -> None:
         with SqliteStore(self._data_dir, read_only=True) as store:
-            if location.path == "/api/recipes":
-                self._list(store, parse_qs(location.query))
+            if path == "/api/shopping-list":
+                self._json(load_shopping_list(store).model_dump(mode="json"))
                 return
-            if location.path.startswith("/api/recipes/"):
-                recipe = store.get(location.path.removeprefix("/api/recipes/"))
+            if path == "/api/recipes":
+                self._list(store, query)
+                return
+            if path.startswith("/api/recipes/"):
+                recipe = store.get(path.removeprefix("/api/recipes/"))
                 if recipe:
                     self._json(
                         {
@@ -94,8 +115,8 @@ class RecipeHandler(BaseHTTPRequestHandler):
                         }
                     )
                     return
-            if location.path.startswith("/images/"):
-                recipe = store.get(location.path.removeprefix("/images/"))
+            if path.startswith("/images/"):
+                recipe = store.get(path.removeprefix("/images/"))
                 if recipe and recipe.image:
                     image = self._data_dir / "recipes" / recipe.id / recipe.image
                     if image.is_file():
@@ -127,47 +148,19 @@ class RecipeHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
                 raise ValueError("Invalid payload")
-            path = urlsplit(self.path).path
-            creating = path == "/api/recipes"
-            if not creating and not path.startswith("/api/recipes/"):
-                self._json({"error": "Nie znaleziono adresu."}, HTTPStatus.NOT_FOUND)
-                return
-            image = _uploaded_image(payload.get("upload"))
-            with SqliteStore(self._data_dir) as store, store.transaction():
-                current = None if creating else store.get(path.removeprefix("/api/recipes/"))
-                if not creating and current is None:
-                    self._json({"error": "Nie znaleziono przepisu."}, HTTPStatus.NOT_FOUND)
-                    return
-                if (
-                    current
-                    and payload.get("updated_at") != current.model_dump(mode="json")["updated_at"]
-                ):
-                    self._json(
-                        {"error": "Przepis zmienił się. Otwórz go ponownie przed edycją."},
-                        HTTPStatus.CONFLICT,
-                    )
-                    return
-                fields = payload["recipe"]
-                if not isinstance(fields, dict) or fields.keys() - {
-                    "title",
-                    "steps",
-                    "variants",
-                    "user",
-                    "notes",
-                }:
-                    raise ValueError("Unexpected fields")
-                original = current.model_dump() if current else {}
-                identity = current.id if current else f"recipe-{secrets.token_hex(8)}"
-                recipe = Recipe.model_validate({**original, **fields, "id": identity})
-                saved = store.save(recipe, image)
+            self._write_payload(payload)
+        except ShoppingConflictError:
             self._json(
-                {
-                    "id": saved.id,
-                    "changed": current is None or saved.updated_at != current.updated_at,
-                },
-                HTTPStatus.CREATED if creating else HTTPStatus.OK,
+                {"error": "Lista zmieniła się na innym urządzeniu. Odśwież ją i spróbuj ponownie."},
+                HTTPStatus.CONFLICT,
             )
         except (ValueError, KeyError, TypeError):
+            if urlsplit(self.path).path == "/api/shopping-list":
+                self._json(
+                    {"error": "Sprawdź nazwy produktów, ilości i jednostki na liście."},
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return
             self._json(
                 {"error": "Sprawdź formularz i zdjęcie. Wymagane: nazwa, składniki i kroki."},
                 HTTPStatus.BAD_REQUEST,
@@ -178,6 +171,51 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 {"error": "Nie udało się zapisać przepisu. Spróbuj ponownie."},
                 HTTPStatus.INTERNAL_SERVER_ERROR,
             )
+
+    def _write_payload(self, payload: dict[str, object]) -> None:
+        path = urlsplit(self.path).path
+        if path == "/api/shopping-list":
+            proposed = ShoppingList.model_validate(payload)
+            with SqliteStore(self._data_dir) as store, store.transaction():
+                shopping = save_shopping_list(store, proposed)
+            self._json(shopping.model_dump(mode="json"))
+            return
+        creating = path == "/api/recipes"
+        if not creating and not path.startswith("/api/recipes/"):
+            self._json({"error": "Nie znaleziono adresu."}, HTTPStatus.NOT_FOUND)
+            return
+        image = _uploaded_image(payload.get("upload"))
+        with SqliteStore(self._data_dir) as store, store.transaction():
+            current = None if creating else store.get(path.removeprefix("/api/recipes/"))
+            if not creating and current is None:
+                self._json({"error": "Nie znaleziono przepisu."}, HTTPStatus.NOT_FOUND)
+                return
+            if (
+                current
+                and payload.get("updated_at") != current.model_dump(mode="json")["updated_at"]
+            ):
+                self._json(
+                    {"error": "Przepis zmienił się. Otwórz go ponownie przed edycją."},
+                    HTTPStatus.CONFLICT,
+                )
+                return
+            fields = payload["recipe"]
+            if not isinstance(fields, dict) or fields.keys() - {
+                "title",
+                "steps",
+                "variants",
+                "user",
+                "notes",
+            }:
+                raise ValueError("Unexpected fields")
+            original = current.model_dump() if current else {}
+            identity = current.id if current else f"recipe-{secrets.token_hex(8)}"
+            recipe = Recipe.model_validate({**original, **fields, "id": identity})
+            saved = store.save(recipe, image)
+        self._json(
+            {"id": saved.id, "changed": current is None or saved.updated_at != current.updated_at},
+            HTTPStatus.CREATED if creating else HTTPStatus.OK,
+        )
 
     def _list(self, store: SqliteStore, query: dict[str, list[str]]) -> None:
         values = {key: value[-1] for key, value in query.items()}

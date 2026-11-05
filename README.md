@@ -9,14 +9,14 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.5.0**: display-only ingredient and nutrition scaling by servings.
+The current work targets **1.6.0**: a shared editable shopping list and clearer navigation.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
 filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.5.0 is not released; package metadata declares 1.5.0.
+Version 1.6.0 is not released; package metadata declares 1.6.0.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,
@@ -146,6 +146,17 @@ and total nutrition from the selected variant's original servings. Scaling affec
 only the view: the database, recipe editor and preparation text retain the original
 values. Ingredients without numerical quantities retain their source text. Changing
 variants or reopening a recipe restores the original serving count.
+
+Open **Lista zakupów** in the top bar to manage the shared shopping list. Add
+ingredients from recipe details using the selected serving count, or enter custom
+products. Edit quantities and units, check products you already have, and remove
+individual items. Compatible units (g/kg and ml/l) are combined for matching names;
+metric quantities take precedence over household quantities when both are present.
+Unknown amounts remain empty for manual entry. The list is persisted separately
+from recipes in the existing SQLite application state and included in full data
+backups. Concurrent changes are rejected with a reload prompt instead of silently
+overwriting another device's edits. The footer shows the installed package version
+generated from `pyproject.toml`.
 
 The application uses Python's standard HTTP server and bundled HTML/CSS/JavaScript,
 with no frontend build or additional dependencies.
