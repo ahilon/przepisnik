@@ -175,6 +175,21 @@ class SqliteStore:
             is not None
         )
 
+    def get_state(self, key: str) -> str | None:
+        """Read an application-owned value independently of recipe records."""
+        row = self._connection.execute(
+            "SELECT value FROM app_state WHERE key = ?", (key,)
+        ).fetchone()
+        return str(row[0]) if row else None
+
+    def set_state(self, key: str, value: str) -> None:
+        """Write application state within the caller's transaction."""
+        self._connection.execute(
+            "INSERT INTO app_state(key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value WHERE value != excluded.value",
+            (key, value),
+        )
+
     def mark_legacy_migrated(self) -> None:
         """Mark completion inside the same transaction as migrated recipes."""
         self._connection.execute(

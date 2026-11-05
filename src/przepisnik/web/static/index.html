@@ -8,6 +8,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/app.css">
   <script src="/app.js" defer></script>
+  <script src="/shopping.js" defer></script>
 </head>
 <body>
   <div class="layout">
@@ -28,10 +29,9 @@
         <select id="tag" name="tag"><option value="">Wszystkie tagi</option></select>
         <button class="reset" type="button" id="reset">Wyczyść filtry <span aria-hidden="true">↗</span></button>
       </form>
-      <div class="sidebar-note"><span class="status-dot"></span> Twoja kolekcja, zawsze pod ręką.<br><span>Wybierz coś dobrego na dziś.</span></div>
     </aside>
     <main id="main">
-      <header class="topbar"><span>DOMOWA KSIĄŻKA KUCHARSKA</span><span class="local-badge">Twoja kuchnia</span></header>
+      <header class="topbar"><span class="topbar-title">Przepisy</span><button id="open-shopping" class="shopping-launch" type="button">Lista zakupów <span id="shopping-count" class="count">0</span></button></header>
       <button id="add-recipe" class="primary" type="button">+ Dodaj przepis</button>
       <section class="intro">
         <p class="eyebrow">CODZIENNE GOTOWANIE, PO SWOJEMU</p>
@@ -51,10 +51,28 @@
       <section id="grid" class="recipe-grid" aria-label="Przepisy" aria-busy="true"></section>
       <section id="empty" class="empty" hidden><span aria-hidden="true">⌕</span><h2>Jeszcze nic tu nie znaleźliśmy</h2><p>Spróbuj innego składnika albo usuń część filtrów.</p><button id="empty-reset" class="primary">Wyczyść filtry</button></section>
       <nav id="pagination" class="pagination" aria-label="Strony przepisów" hidden><button id="previous">← Poprzednia</button><span id="page-label"></span><button id="next">Następna →</button></nav>
-      <footer>Dobry dzień zaczyna się w kuchni. <span>Smacznego!</span></footer>
+      <footer><span id="app-version">Wczytywanie wersji…</span></footer>
     </main>
   </div>
   <dialog id="detail" aria-labelledby="detail-title"><button id="close-detail" class="close" aria-label="Zamknij szczegóły">×</button><div id="detail-content"></div></dialog>
 <dialog id="editor" aria-labelledby="editor-title"><div class="detail-inner"><h2 id="editor-title"></h2><form id="recipe-form"></form></div></dialog>
+  <dialog id="shopping" aria-labelledby="shopping-title">
+    <button id="close-shopping" class="close" aria-label="Zamknij listę zakupów" type="button">×</button>
+    <div class="shopping-inner">
+      <p class="eyebrow">NA NAJBLIŻSZE ZAKUPY</p><h2 id="shopping-title">Lista zakupów</h2>
+      <p class="shopping-description">Dodaj składniki z przepisu lub własne produkty. Zaznacz to, co już masz.</p>
+      <p id="shopping-status" class="shopping-status" role="status"></p>
+      <p id="shopping-error" class="error" role="alert" hidden></p>
+      <button id="refresh-shopping" class="secondary" type="button">Odśwież listę</button>
+      <div id="shopping-items"></div>
+      <form id="shopping-add" class="shopping-add">
+        <h3>Dodaj własny produkt</h3>
+        <label for="shopping-name">Produkt</label><input id="shopping-name" required maxlength="160" placeholder="np. pomidory">
+        <div class="shopping-add-amount"><div><label for="shopping-amount">Ilość</label><input id="shopping-amount" type="number" min="0" step="any" placeholder="np. 500"></div><div><label for="shopping-unit">Jednostka</label><input id="shopping-unit" list="shopping-units" maxlength="24" placeholder="g, ml, szt."></div></div>
+        <datalist id="shopping-units"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="szt."><option value="opak."></datalist>
+        <button class="primary" type="submit">Dodaj produkt</button>
+      </form>
+    </div>
+  </dialog>
 </body>
 </html>

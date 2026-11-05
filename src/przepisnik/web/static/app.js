@@ -226,7 +226,15 @@ function renderDetail() {
   edit.type = "button";
   edit.addEventListener("click", () => openEditor(recipe));
   const actions = element("div", "detail-actions");
-  actions.append(edit, favoriteButton(recipe)); inner.append(actions);
+  const shoppingButton = element("button", "secondary", "Dodaj do listy zakupów");
+  shoppingButton.type = "button";
+  shoppingButton.addEventListener("click", async () => {
+    if ($("#detail-servings").getAttribute("aria-invalid") === "true") return;
+    shoppingButton.disabled = true;
+    try { await addRecipeToShopping(recipe, selectedVariant, displayedServings ?? variant.servings); }
+    finally { shoppingButton.disabled = false; }
+  });
+  actions.append(edit, favoriteButton(recipe), shoppingButton); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);

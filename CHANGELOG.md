@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [1.6.0] - Unreleased
+
+- Add a shared shopping list with custom products, editable quantities and units,
+  checked items, removal, persistence and protection against concurrent updates.
+- Add recipe ingredients for the selected servings, combining matching products
+  with compatible g/kg and ml/l units while preserving unknown quantities.
+- Open shopping from the top bar, simplify decorative labels and show the installed
+  package version in the footer.
+- Cover shopping storage, validation, recipe isolation, device conflicts and mobile
+  browser interactions with isolated tests.
+
 ## [1.5.0] - Unreleased
 
 - Add a serving-count control in recipe details to scale known ingredient quantities
