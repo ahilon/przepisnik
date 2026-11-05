@@ -11,6 +11,7 @@ let listingRequest = null;
 let detailRequest = null;
 let detailRecipe = null;
 let selectedVariant = "";
+let displayedServings = null;
 let searchTimer;
 
 function element(tag, className, text) {
@@ -166,12 +167,26 @@ function resetFilters() {
   refresh();
 }
 function number(value) { return new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 1 }).format(value); }
-function ingredientText(ingredient) {
-  if (ingredient.raw) return ingredient.raw;
+function ingredientText(ingredient, factor = 1) {
+  const hasQuantity = ingredient.amount != null || ingredient.metric_amount != null;
+  if (ingredient.raw && (factor === 1 || !hasQuantity)) return ingredient.raw;
   const parts = [ingredient.name];
-  if (ingredient.amount !== null) parts.push(`${number(ingredient.amount)} ${ingredient.unit || ""}`.trim());
-  if (ingredient.metric_amount !== null) parts.push(`${number(ingredient.metric_amount)} ${ingredient.metric_unit}`);
+  const quantity = value => {
+    const scaled = value * factor;
+    return scaled > 0 && scaled < 0.001 ? "< 0,001" : new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 3 }).format(scaled);
+  };
+  if (ingredient.amount != null) parts.push(`${quantity(ingredient.amount)} ${ingredient.unit || ""}`.trim());
+  if (ingredient.metric_amount != null) parts.push(`${quantity(ingredient.metric_amount)} ${ingredient.metric_unit}`);
   return parts.join(" — ");
+}
+function renderIngredientList(list, ingredients, factor) {
+  list.replaceChildren();
+  let group = null;
+  ingredients.forEach(ingredient => {
+    if (ingredient.group && ingredient.group !== group) list.append(element("li", "ingredient-group", ingredient.group));
+    group = ingredient.group;
+    list.append(element("li", "", ingredientText(ingredient, factor)));
+  });
 }
 function sourceBlock(source) {
   if (!source) return null;
@@ -193,6 +208,8 @@ function sourceBlock(source) {
 function renderDetail() {
   const recipe = detailRecipe;
   const variant = recipe.variants[selectedVariant];
+  const servings = displayedServings ?? variant.servings;
+  const factor = servings / variant.servings;
   const content = $("#detail-content");
   content.replaceChildren();
   if (recipe.image_url) {
@@ -214,16 +231,44 @@ function renderDetail() {
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
     tab.setAttribute("aria-pressed", String(key === selectedVariant));
-    tab.addEventListener("click", () => { selectedVariant = key; renderDetail(); });
+    tab.addEventListener("click", () => {
+      selectedVariant = key; displayedServings = recipe.variants[key].servings; renderDetail();
+    });
     tabs.append(tab);
   }
   inner.append(tabs);
-  inner.append(element("p", "detail-hint", `Składniki i wartości dla ${variant.servings} porcji.${recipe.user.preparation_minutes ? ` Czas przygotowania: ${recipe.user.preparation_minutes} min.` : ""}`));
+  const portions = element("div", "portion-controls");
+  const portionLabel = element("label", "", "Liczba porcji"); portionLabel.htmlFor = "detail-servings";
+  const portionInput = element("input"); portionInput.id = "detail-servings";
+  portionInput.type = "number"; portionInput.min = "1"; portionInput.step = "1"; portionInput.value = servings;
+  portionInput.setAttribute("aria-describedby", "portion-hint portion-error");
+  const portionError = element("p", "error"); portionError.id = "portion-error"; portionError.hidden = true; portionError.setAttribute("role", "alert");
+  portionInput.addEventListener("change", () => {
+    const value = Number(portionInput.value);
+    const ratio = value / variant.servings;
+    const amounts = [...variant.ingredients.flatMap(ingredient => [ingredient.amount, ingredient.metric_amount]), ...Object.values(variant.nutrition || {})];
+    if (!Number.isSafeInteger(value) || value < 1 || amounts.some(amount => amount != null && !Number.isFinite(amount * ratio))) {
+      portionError.textContent = "Podaj dodatnią, całkowitą liczbę porcji, dla której można przeliczyć ilości.";
+      portionError.hidden = false; portionInput.setAttribute("aria-invalid", "true"); return;
+    }
+    displayedServings = value;
+    portionError.hidden = true; portionInput.removeAttribute("aria-invalid");
+    servingSummary.textContent = servingDescription(value);
+    renderIngredientList(list, variant.ingredients, ratio);
+    inner.querySelectorAll(".nutrition strong").forEach((item, index) => {
+      item.textContent = number(variant.nutrition[["kcal", "protein_g", "fat_g", "carbs_g"][index]] * ratio);
+    });
+  });
+  portions.append(portionLabel, portionInput); inner.append(portions, portionError);
+  const portionHint = element("p", "detail-hint", "Przeliczenie nie zmienia zapisanego przepisu. Składniki bez podanej ilości dobierz do smaku. Ilości w opisie przygotowania pozostają bez zmian.");
+  portionHint.id = "portion-hint"; inner.append(portionHint);
+  const servingDescription = count => `Składniki i wartości dla ${count} porcji (przepis bazowy: ${variant.servings}).${recipe.user.preparation_minutes ? ` Czas przygotowania: ${recipe.user.preparation_minutes} min.` : ""}`;
+  const servingSummary = element("p", "detail-hint", servingDescription(servings)); inner.append(servingSummary);
   if (variant.nutrition) {
     const nutrition = element("div", "nutrition");
     for (const [key, label] of [["kcal", "kcal"], ["protein_g", "białko · g"], ["fat_g", "tłuszcz · g"], ["carbs_g", "węglowodany · g"]]) {
       const item = element("div");
-      item.append(element("strong", "", number(variant.nutrition[key])), element("span", "", label));
+      item.append(element("strong", "", number(variant.nutrition[key] * factor)), element("span", "", label));
       nutrition.append(item);
     }
     inner.append(nutrition);
@@ -232,12 +277,7 @@ function renderDetail() {
   const ingredients = element("section");
   ingredients.append(element("h3", "", "Składniki"));
   const list = element("ul", "ingredients");
-  let group = null;
-  variant.ingredients.forEach(ingredient => {
-    if (ingredient.group && ingredient.group !== group) list.append(element("li", "ingredient-group", ingredient.group));
-    group = ingredient.group;
-    list.append(element("li", "", ingredientText(ingredient)));
-  });
+  renderIngredientList(list, variant.ingredients, factor);
   ingredients.append(list);
   const preparation = element("section");
   preparation.append(element("h3", "", "Przygotowanie"));
@@ -263,6 +303,7 @@ async function openRecipe(id) {
     const recipe = await request(`/api/recipes/${encodeURIComponent(id)}`, detailRequest.signal);
     detailRecipe = recipe;
     selectedVariant = recipe.variants[$("#variant").value] ? $("#variant").value : Object.keys(recipe.variants)[0];
+    displayedServings = recipe.variants[selectedVariant].servings;
     renderDetail();
   } catch (error) {
     if (error.name !== "AbortError") $("#detail-content").replaceChildren(element("p", "error", error.message));

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [1.5.0] - Unreleased
+
+- Add a serving-count control in recipe details to scale known ingredient quantities
+  and total nutrition from the selected variant's original servings.
+- Keep scaling display-only: preserve stored recipes, editor values, preparation
+  text and ingredients without numerical quantities; reset portions on variant
+  changes and reopening a recipe.
+- Cover scaling, repeated changes, invalid inputs, variant resets and unchanged
+  database/editor values with isolated Playwright tests.
+
 ## [1.4.4] - Unreleased
 
 - Run browser tests against a fresh temporary recipe database and local HTTP
