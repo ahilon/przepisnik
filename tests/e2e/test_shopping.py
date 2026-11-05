@@ -126,3 +126,41 @@ def test_version_and_navigation_on_mobile(app_page: Page) -> None:
     _open_list(page)
     _add_product(page, "Mobile product", "1", "szt.")
     assert page.locator("#shopping").evaluate("el => el.scrollWidth <= el.clientWidth")
+
+
+def test_clear_list_requires_confirmation_and_persists(app_page: Page) -> None:
+    """Clear both checked and unchecked products only after confirmation."""
+    page = app_page
+    _open_list(page)
+    clear = page.get_by_role("button", name="Wyczyść listę", exact=True)
+    expect(clear).to_be_disabled()
+    _add_product(page, "Keep", "1", "kg")
+    _add_product(page, "Have", "2", "szt.")
+    page.get_by_role("checkbox", name="Mam: Have", exact=True).check()
+    expect(page.get_by_role("region", name="Mam już")).to_contain_text("Have")
+    page.once("dialog", lambda dialog: dialog.dismiss())
+    clear.click()
+    expect(page.locator(".shopping-row")).to_have_count(2)
+    page.once("dialog", lambda dialog: dialog.accept())
+    clear.click()
+    expect(page.locator(".shopping-row")).to_have_count(0)
+    expect(clear).to_be_disabled()
+    expect(page.locator("#shopping-count")).to_have_text("0")
+    page.reload()
+    _open_list(page)
+    expect(page.locator(".shopping-row")).to_have_count(0)
+
+
+def test_stale_clear_does_not_remove_another_devices_product(app_page: Page) -> None:
+    """Reject clearing an old list after another client added a product."""
+    page = app_page
+    _open_list(page)
+    _add_product(page, "Local", "1", "g")
+    endpoint = f"{page.url.rstrip('/')}/api/shopping-list"
+    current = page.request.get(endpoint).json()
+    current["items"].append({"id": "other", "name": "Other device"})
+    assert page.request.post(endpoint, data=current).ok
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Wyczyść listę", exact=True).click()
+    expect(page.locator("#shopping-error")).to_contain_text("innym urządzeniu")
+    expect(page.locator(".shopping-row")).to_have_count(2)

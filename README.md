@@ -9,14 +9,14 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.6.0**: a shared editable shopping list and clearer navigation.
+The current work targets **1.7.0**: shopping list clearing, fractional servings and hidden recipes.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
 filters, pagination and recipe details with variant switching.
 Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
 SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.6.0 is not released; package metadata declares 1.6.0.
+Version 1.7.0 is not released; package metadata declares 1.7.0.
 Package versions are independent of recipe document and SQLite schema versions.
 
 SQLite schema upgrades run automatically when opening a database for writing,
@@ -141,16 +141,26 @@ change and later saving its reversal still performs two updates.
 Favorites can be toggled directly using the heart on each card or the button in
 recipe details. Both refresh the favorite count and active filters after saving.
 
+Use **Ukryj przepis** in recipe details to move a recipe out of all regular
+collections, searches, filters and their counters. Only **Ukryte** lists hidden
+recipes; **Przywróć przepis** makes them visible again without losing favorites,
+ingredients or notes. Existing recipes default to visible. Hiding is stored in
+user metadata without a SQLite schema migration; exports and backups retain the
+recipes. The CLI offers `recipes list --hidden` for the same explicit collection.
+
 Recipe details include a serving count that scales known ingredient quantities
 and total nutrition from the selected variant's original servings. Scaling affects
 only the view: the database, recipe editor and preparation text retain the original
 values. Ingredients without numerical quantities retain their source text. Changing
 variants or reopening a recipe restores the original serving count.
+Displayed servings accept any finite value greater than zero and up to 20,
+including fractions such as 0.7. The plus/minus buttons adjust by half a serving.
 
 Open **Lista zakupów** in the top bar to manage the shared shopping list. Add
 ingredients from recipe details using the selected serving count, or enter custom
 products. Edit quantities and units, check products you already have, and remove
-individual items. Compatible units (g/kg and ml/l) are combined for matching names;
+individual items. Use **Wyczyść listę** to remove all checked and unchecked products
+after confirmation. Compatible units (g/kg and ml/l) are combined for matching names;
 metric quantities take precedence over household quantities when both are present.
 Unknown amounts remain empty for manual entry. The list is persisted separately
 from recipes in the existing SQLite application state and included in full data

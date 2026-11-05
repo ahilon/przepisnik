@@ -78,9 +78,9 @@ def test_scale_servings_without_saving(
     assert (recipe_data / "recipes.sqlite3").read_bytes() == original_bytes
 
 
-@pytest.mark.parametrize("value", ["0", "-1", "1.5", ""])
+@pytest.mark.parametrize("value", ["0", "-1", "20.1", ""])
 def test_invalid_servings_keep_previous_quantities(portions_page: Page, value: str) -> None:
-    """Reject empty, fractional and non-positive counts and allow correction."""
+    """Reject empty, non-positive and excessive counts and allow correction."""
     page = portions_page
     _set_servings(page, value)
     expect(page.locator("#portion-error")).to_be_visible()
@@ -116,3 +116,38 @@ def test_editor_uses_original_values(portions_page: Page) -> None:
     page.get_by_role("button", name="Edytuj przepis", exact=True).click()
     expect(page.locator("#family-servings")).to_have_value("2")
     expect(page.locator('[data-kind="family"] [data-field="amount"]').first).to_have_value("100")
+
+
+def test_fractional_servings_and_half_steps(portions_page: Page) -> None:
+    """Accept arbitrary fractions while buttons advance by half a serving."""
+    page = portions_page
+    field = page.get_by_label("Liczba porcji", exact=True)
+    increase = page.get_by_role("button", name="Zwiększ liczbę porcji o 0,5", exact=True)
+    decrease = page.get_by_role("button", name="Zmniejsz liczbę porcji o 0,5", exact=True)
+    increase.click()
+    expect(field).to_have_value("2.5")
+    expect(page.locator(".ingredients")).to_contain_text("Rice — 125 g")
+    _set_servings(page, "0.7")
+    expect(page.locator(".ingredients")).to_contain_text("Rice — 35 g")
+    expect(page.locator(".nutrition strong").first).to_have_text("210")
+    increase.click()
+    expect(field).to_have_value("1.2")
+    decrease.click()
+    expect(field).to_have_value("0.7")
+    decrease.click()
+    expect(field).to_have_value("0.2")
+    expect(decrease).to_be_disabled()
+    _set_servings(page, "19.5")
+    increase.click()
+    expect(field).to_have_value("20")
+    expect(increase).to_be_disabled()
+
+
+def test_fractional_servings_are_used_in_shopping_list(portions_page: Page) -> None:
+    """Send fractional quantities to shopping without changing the recipe."""
+    page = portions_page
+    _set_servings(page, "0.7")
+    page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
+    expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_visible()
+    row = page.locator(".shopping-row").filter(has=page.get_by_text("Rice", exact=True))
+    expect(row.get_by_label("Ilość", exact=True)).to_have_value("35")

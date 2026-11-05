@@ -25,6 +25,7 @@ class RecipeFilters:
     favorite: bool = False
     tag: str = ""
     uncategorized: bool = False
+    hidden: bool = False
 
 
 def select_recipes(recipes: list[Recipe], filters: RecipeFilters) -> list[Recipe]:
@@ -33,7 +34,8 @@ def select_recipes(recipes: list[Recipe], filters: RecipeFilters) -> list[Recipe
     return [
         recipe
         for recipe in recipes
-        if (filters.meal is None or filters.meal in recipe.effective_meal_types)
+        if recipe.user.hidden == filters.hidden
+        and (filters.meal is None or filters.meal in recipe.effective_meal_types)
         and (filters.dish is None or filters.dish in recipe.effective_dish_types)
         and (filters.variant is None or filters.variant in recipe.variants)
         and (not filters.favorite or recipe.user.favorite)

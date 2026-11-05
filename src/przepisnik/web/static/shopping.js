@@ -11,6 +11,7 @@ function shoppingMessage(message = "", error = false) {
 function shoppingBusyState(busy) {
   shoppingBusy = busy;
   $("#shopping").querySelectorAll("input, button:not(#close-shopping)").forEach(control => { control.disabled = busy; });
+  $("#clear-shopping").disabled = busy || shoppingState.items.length === 0;
 }
 async function loadShopping() {
   const result = await request("/api/shopping-list");
@@ -141,6 +142,11 @@ async function addRecipeToShopping(recipe, kind, servings) {
 $("#open-shopping").addEventListener("click", openShopping);
 $("#close-shopping").addEventListener("click", () => $("#shopping").close());
 $("#refresh-shopping").addEventListener("click", openShopping);
+$("#clear-shopping").addEventListener("click", async () => {
+  if (!shoppingState.items.length || shoppingBusy) return;
+  if (!window.confirm("Usunąć wszystkie produkty z listy zakupów, również oznaczone jako posiadane?")) return;
+  if (await updateShopping(doc => { doc.items = []; })) shoppingMessage("Lista zakupów wyczyszczona.");
+});
 $("#shopping-add").addEventListener("submit", async event => {
   event.preventDefault();
   const name = $("#shopping-name").value.trim();

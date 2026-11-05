@@ -65,12 +65,15 @@ function card(recipe) {
   return article;
 }
 function favoriteButton(recipe, compact = false) {
-  const favorite = recipe.user?.favorite ?? recipe.favorite;
-  const label = favorite ? "Usuń z ulubionych" : "Dodaj do ulubionych";
-  const button = element("button", compact ? "favorite-toggle" : "secondary", compact ? (favorite ? "♥" : "♡") : label);
+  return metadataButton(recipe, "favorite", "Usuń z ulubionych", "Dodaj do ulubionych", compact);
+}
+function metadataButton(recipe, field, activeLabel, inactiveLabel, compact = false) {
+  const active = recipe.user?.[field] ?? recipe[field];
+  const label = active ? activeLabel : inactiveLabel;
+  const button = element("button", compact ? "favorite-toggle" : "secondary", compact ? (active ? "♥" : "♡") : label);
   button.type = "button"; button.title = label;
   button.setAttribute("aria-label", `${label}: ${recipe.title}`);
-  button.setAttribute("aria-pressed", String(favorite));
+  button.setAttribute("aria-pressed", String(active));
   let notice = null;
   button.addEventListener("click", async () => {
     button.disabled = true; notice?.remove();
@@ -78,10 +81,10 @@ function favoriteButton(recipe, compact = false) {
       const current = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
       const response = await fetch(`/api/recipes/${encodeURIComponent(recipe.id)}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipe: { user: { ...current.user, favorite: !favorite } }, updated_at: current.updated_at })
+        body: JSON.stringify({ recipe: { user: { ...current.user, [field]: !active } }, updated_at: current.updated_at })
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Nie udało się zmienić ulubionych.");
+      if (!response.ok) throw new Error(body.error || "Nie udało się zapisać zmiany.");
       await loadRecipes();
       if ($("#detail").open && detailRecipe?.id === recipe.id) {
         const updated = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
@@ -99,7 +102,7 @@ function query() {
   for (const [key, value] of Object.entries({ q: $("#search").value.trim(), meal: state.meal,
     variant: $("#variant").value, dish: $("#dish").value, tag: $("#tag").value,
     favorite: state.collection === "favorites" ? "1" : "",
-    uncategorized: state.collection === "uncategorized" ? "1" : "" })) {
+    uncategorized: state.collection === "uncategorized" ? "1" : "", hidden: state.collection === "hidden" ? "1" : "" })) {
     if (value) params.set(key, value);
   }
   return params;
@@ -156,7 +159,7 @@ function updateControls() {
     button.classList.toggle("selected", active);
     button.setAttribute("aria-pressed", String(active));
   });
-  $("#collection-title").textContent = { all: "Wszystkie przepisy", favorites: "Twoje ulubione", uncategorized: "Bez pory posiłku" }[state.collection];
+  $("#collection-title").textContent = { all: "Wszystkie przepisy", favorites: "Twoje ulubione", uncategorized: "Bez pory posiłku", hidden: "Ukryte przepisy" }[state.collection];
 }
 function resetFilters() {
   $("#filters").reset();
@@ -208,7 +211,8 @@ function sourceBlock(source) {
 function renderDetail() {
   const recipe = detailRecipe;
   const variant = recipe.variants[selectedVariant];
-  const servings = displayedServings ?? variant.servings;
+  const servings = Math.min(displayedServings ?? variant.servings, 20);
+  displayedServings = servings;
   const factor = servings / variant.servings;
   const content = $("#detail-content");
   content.replaceChildren();
@@ -234,7 +238,7 @@ function renderDetail() {
     try { await addRecipeToShopping(recipe, selectedVariant, displayedServings ?? variant.servings); }
     finally { shoppingButton.disabled = false; }
   });
-  actions.append(edit, favoriteButton(recipe), shoppingButton); inner.append(actions);
+  actions.append(edit, favoriteButton(recipe), metadataButton(recipe, "hidden", "Przywróć przepis", "Ukryj przepis"), shoppingButton); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
@@ -248,18 +252,23 @@ function renderDetail() {
   const portions = element("div", "portion-controls");
   const portionLabel = element("label", "", "Liczba porcji"); portionLabel.htmlFor = "detail-servings";
   const portionInput = element("input"); portionInput.id = "detail-servings";
-  portionInput.type = "number"; portionInput.min = "1"; portionInput.step = "1"; portionInput.value = servings;
+  portionInput.type = "number"; portionInput.min = "0"; portionInput.max = "20"; portionInput.step = "any"; portionInput.inputMode = "decimal"; portionInput.value = servings;
+  const decrease = element("button", "secondary portion-step", "−"); decrease.type = "button";
+  decrease.setAttribute("aria-label", "Zmniejsz liczbę porcji o 0,5"); decrease.disabled = servings <= 0.5;
+  const increase = element("button", "secondary portion-step", "+"); increase.type = "button";
+  increase.setAttribute("aria-label", "Zwiększ liczbę porcji o 0,5"); increase.disabled = servings >= 20;
   portionInput.setAttribute("aria-describedby", "portion-hint portion-error");
   const portionError = element("p", "error"); portionError.id = "portion-error"; portionError.hidden = true; portionError.setAttribute("role", "alert");
   portionInput.addEventListener("change", () => {
     const value = Number(portionInput.value);
     const ratio = value / variant.servings;
     const amounts = [...variant.ingredients.flatMap(ingredient => [ingredient.amount, ingredient.metric_amount]), ...Object.values(variant.nutrition || {})];
-    if (!Number.isSafeInteger(value) || value < 1 || amounts.some(amount => amount != null && !Number.isFinite(amount * ratio))) {
-      portionError.textContent = "Podaj dodatnią, całkowitą liczbę porcji, dla której można przeliczyć ilości.";
+    if (!Number.isFinite(value) || value <= 0 || value > 20 || amounts.some(amount => amount != null && !Number.isFinite(amount * ratio))) {
+      portionError.textContent = "Podaj liczbę porcji większą od 0 i nie większą niż 20.";
       portionError.hidden = false; portionInput.setAttribute("aria-invalid", "true"); return;
     }
     displayedServings = value;
+    decrease.disabled = value <= 0.5; increase.disabled = value >= 20;
     portionError.hidden = true; portionInput.removeAttribute("aria-invalid");
     servingSummary.textContent = servingDescription(value);
     renderIngredientList(list, variant.ingredients, ratio);
@@ -267,7 +276,14 @@ function renderDetail() {
       item.textContent = number(variant.nutrition[["kcal", "protein_g", "fat_g", "carbs_g"][index]] * ratio);
     });
   });
-  portions.append(portionLabel, portionInput); inner.append(portions, portionError);
+  for (const [button, delta] of [[decrease, -0.5], [increase, 0.5]]) {
+    button.addEventListener("click", () => {
+      const current = Number(portionInput.value);
+      if (Number.isFinite(current) && current > 0 && current <= 20) portionInput.value = Math.min(20, Number((current + delta).toPrecision(12)));
+      portionInput.dispatchEvent(new Event("change"));
+    });
+  }
+  portions.append(portionLabel, decrease, portionInput, increase); inner.append(portions, portionError);
   const portionHint = element("p", "detail-hint", "Przeliczenie nie zmienia zapisanego przepisu. Składniki bez podanej ilości dobierz do smaku. Ilości w opisie przygotowania pozostają bez zmian.");
   portionHint.id = "portion-hint"; inner.append(portionHint);
   const servingDescription = count => `Składniki i wartości dla ${count} porcji (przepis bazowy: ${variant.servings}).${recipe.user.preparation_minutes ? ` Czas przygotowania: ${recipe.user.preparation_minutes} min.` : ""}`;
@@ -349,7 +365,7 @@ $("#variant").value = initial.get("variant") || "";
 $("#dish").value = initial.get("dish") || "";
 if (initial.get("tag")) $("#tag").append(new Option(initial.get("tag"), initial.get("tag"), true, true));
 state.meal = ["breakfast", "lunch", "dinner", "snack"].includes(initial.get("meal")) ? initial.get("meal") : "";
-state.collection = initial.get("favorite") === "1" ? "favorites" : initial.get("uncategorized") === "1" ? "uncategorized" : "all";
+state.collection = initial.get("hidden") === "1" ? "hidden" : initial.get("favorite") === "1" ? "favorites" : initial.get("uncategorized") === "1" ? "uncategorized" : "all";
 state.page = /^\d+$/.test(initial.get("page") || "") ? Math.max(1, Number(initial.get("page"))) : 1;
 updateControls();
 loadRecipes();

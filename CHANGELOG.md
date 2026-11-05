@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## [1.7.0] - Unreleased
+
+- Clear all checked and unchecked shopping products after confirmation, preserving
+  concurrent edits made on another device and disabling the action on an empty list.
+- Cover cancellation, persisted clearing and stale-list conflicts with browser tests.
+- Accept fractional displayed servings greater than zero and up to 20, with half-portion
+  increment/decrement buttons and fractional quantities in the shopping list.
+- Test manual fractional values, half steps, bounds and shopping-list scaling while
+  keeping original recipe quantities unchanged.
+- Hide and restore recipes from their details, with a dedicated hidden collection;
+  exclude hidden recipes from ordinary lists, searches, filters, tags and counters.
+- Preserve favorites and recipe content on restore, read existing metadata as visible
+  by default, and expose an explicit CLI hidden filter without a SQLite schema migration.
+- Cover hidden discovery, restoration, CLI filtering and mobile navigation with tests.
+
 ## [1.6.0] - Unreleased
 
 - Add a shared shopping list with custom products, editable quantities and units,
