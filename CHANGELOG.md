@@ -7,6 +7,10 @@
 - Clear all checked and unchecked shopping products after confirmation, preserving
   concurrent edits made on another device and disabling the action on an empty list.
 - Cover cancellation, persisted clearing and stale-list conflicts with browser tests.
+- Accept fractional displayed servings greater than zero and up to 20, with half-portion
+  increment/decrement buttons and fractional quantities in the shopping list.
+- Test manual fractional values, half steps, bounds and shopping-list scaling while
+  keeping original recipe quantities unchanged.
 
 ## [1.6.0] - Unreleased
 

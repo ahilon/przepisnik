@@ -9,7 +9,7 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.7.0**: shopping list clearing and recipe controls.
+The current work targets **1.7.0**: shopping list clearing and fractional serving controls.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
@@ -146,6 +146,8 @@ and total nutrition from the selected variant's original servings. Scaling affec
 only the view: the database, recipe editor and preparation text retain the original
 values. Ingredients without numerical quantities retain their source text. Changing
 variants or reopening a recipe restores the original serving count.
+Displayed servings accept any finite value greater than zero and up to 20,
+including fractions such as 0.7. The plus/minus buttons adjust by half a serving.
 
 Open **Lista zakupów** in the top bar to manage the shared shopping list. Add
 ingredients from recipe details using the selected serving count, or enter custom
