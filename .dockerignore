@@ -10,3 +10,4 @@
 !docker/demo/**
 **/__pycache__/
 **/*.pyc
+artifacts/

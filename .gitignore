@@ -23,6 +23,9 @@ data/
 # Temporary files written by the store
 *.tmp
 
+# Generated deployment and test artifacts
+/artifacts/
+
 # Local implementation checklist
 /PLAN.local.md
 
