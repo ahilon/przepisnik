@@ -11,6 +11,11 @@
   increment/decrement buttons and fractional quantities in the shopping list.
 - Test manual fractional values, half steps, bounds and shopping-list scaling while
   keeping original recipe quantities unchanged.
+- Hide and restore recipes from their details, with a dedicated hidden collection;
+  exclude hidden recipes from ordinary lists, searches, filters, tags and counters.
+- Preserve favorites and recipe content on restore, read existing metadata as visible
+  by default, and expose an explicit CLI hidden filter without a SQLite schema migration.
+- Cover hidden discovery, restoration, CLI filtering and mobile navigation with tests.
 
 ## [1.6.0] - Unreleased
 

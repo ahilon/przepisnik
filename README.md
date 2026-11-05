@@ -9,7 +9,7 @@ for planning, implementation and documentation.
 
 ## Version status
 
-The current work targets **1.7.0**: shopping list clearing and fractional serving controls.
+The current work targets **1.7.0**: shopping list clearing, fractional servings and hidden recipes.
 Version **1.4.0** introduced configurable server addresses and allowed
 origins for home-network access, with instance setup documentation.
 Version **1.3.0** introduced a local recipe browser with photo cards, search,
@@ -140,6 +140,13 @@ change and later saving its reversal still performs two updates.
 
 Favorites can be toggled directly using the heart on each card or the button in
 recipe details. Both refresh the favorite count and active filters after saving.
+
+Use **Ukryj przepis** in recipe details to move a recipe out of all regular
+collections, searches, filters and their counters. Only **Ukryte** lists hidden
+recipes; **Przywróć przepis** makes them visible again without losing favorites,
+ingredients or notes. Existing recipes default to visible. Hiding is stored in
+user metadata without a SQLite schema migration; exports and backups retain the
+recipes. The CLI offers `recipes list --hidden` for the same explicit collection.
 
 Recipe details include a serving count that scales known ingredient quantities
 and total nutrition from the selected variant's original servings. Scaling affects

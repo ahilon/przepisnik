@@ -65,12 +65,15 @@ function card(recipe) {
   return article;
 }
 function favoriteButton(recipe, compact = false) {
-  const favorite = recipe.user?.favorite ?? recipe.favorite;
-  const label = favorite ? "Usuń z ulubionych" : "Dodaj do ulubionych";
-  const button = element("button", compact ? "favorite-toggle" : "secondary", compact ? (favorite ? "♥" : "♡") : label);
+  return metadataButton(recipe, "favorite", "Usuń z ulubionych", "Dodaj do ulubionych", compact);
+}
+function metadataButton(recipe, field, activeLabel, inactiveLabel, compact = false) {
+  const active = recipe.user?.[field] ?? recipe[field];
+  const label = active ? activeLabel : inactiveLabel;
+  const button = element("button", compact ? "favorite-toggle" : "secondary", compact ? (active ? "♥" : "♡") : label);
   button.type = "button"; button.title = label;
   button.setAttribute("aria-label", `${label}: ${recipe.title}`);
-  button.setAttribute("aria-pressed", String(favorite));
+  button.setAttribute("aria-pressed", String(active));
   let notice = null;
   button.addEventListener("click", async () => {
     button.disabled = true; notice?.remove();
@@ -78,10 +81,10 @@ function favoriteButton(recipe, compact = false) {
       const current = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
       const response = await fetch(`/api/recipes/${encodeURIComponent(recipe.id)}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipe: { user: { ...current.user, favorite: !favorite } }, updated_at: current.updated_at })
+        body: JSON.stringify({ recipe: { user: { ...current.user, [field]: !active } }, updated_at: current.updated_at })
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Nie udało się zmienić ulubionych.");
+      if (!response.ok) throw new Error(body.error || "Nie udało się zapisać zmiany.");
       await loadRecipes();
       if ($("#detail").open && detailRecipe?.id === recipe.id) {
         const updated = await request(`/api/recipes/${encodeURIComponent(recipe.id)}`);
@@ -99,7 +102,7 @@ function query() {
   for (const [key, value] of Object.entries({ q: $("#search").value.trim(), meal: state.meal,
     variant: $("#variant").value, dish: $("#dish").value, tag: $("#tag").value,
     favorite: state.collection === "favorites" ? "1" : "",
-    uncategorized: state.collection === "uncategorized" ? "1" : "" })) {
+    uncategorized: state.collection === "uncategorized" ? "1" : "", hidden: state.collection === "hidden" ? "1" : "" })) {
     if (value) params.set(key, value);
   }
   return params;
@@ -156,7 +159,7 @@ function updateControls() {
     button.classList.toggle("selected", active);
     button.setAttribute("aria-pressed", String(active));
   });
-  $("#collection-title").textContent = { all: "Wszystkie przepisy", favorites: "Twoje ulubione", uncategorized: "Bez pory posiłku" }[state.collection];
+  $("#collection-title").textContent = { all: "Wszystkie przepisy", favorites: "Twoje ulubione", uncategorized: "Bez pory posiłku", hidden: "Ukryte przepisy" }[state.collection];
 }
 function resetFilters() {
   $("#filters").reset();
@@ -235,7 +238,7 @@ function renderDetail() {
     try { await addRecipeToShopping(recipe, selectedVariant, displayedServings ?? variant.servings); }
     finally { shoppingButton.disabled = false; }
   });
-  actions.append(edit, favoriteButton(recipe), shoppingButton); inner.append(actions);
+  actions.append(edit, favoriteButton(recipe), metadataButton(recipe, "hidden", "Przywróć przepis", "Ukryj przepis"), shoppingButton); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
   for (const key of Object.keys(recipe.variants)) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
@@ -362,7 +365,7 @@ $("#variant").value = initial.get("variant") || "";
 $("#dish").value = initial.get("dish") || "";
 if (initial.get("tag")) $("#tag").append(new Option(initial.get("tag"), initial.get("tag"), true, true));
 state.meal = ["breakfast", "lunch", "dinner", "snack"].includes(initial.get("meal")) ? initial.get("meal") : "";
-state.collection = initial.get("favorite") === "1" ? "favorites" : initial.get("uncategorized") === "1" ? "uncategorized" : "all";
+state.collection = initial.get("hidden") === "1" ? "hidden" : initial.get("favorite") === "1" ? "favorites" : initial.get("uncategorized") === "1" ? "uncategorized" : "all";
 state.page = /^\d+$/.test(initial.get("page") || "") ? Math.max(1, Number(initial.get("page"))) : 1;
 updateControls();
 loadRecipes();

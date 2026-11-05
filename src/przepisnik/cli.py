@@ -297,6 +297,7 @@ def _add_recipe_commands(commands: argparse._SubParsersAction[argparse.ArgumentP
     listing.add_argument("--dish", choices=list(DishType))
     listing.add_argument("--variant", choices=list(VariantKind))
     listing.add_argument("--favorite", action="store_true")
+    listing.add_argument("--hidden", action="store_true", help="List only hidden recipes.")
     listing.set_defaults(handler=_cmd_list)
     show = actions.add_parser("show", help="Print a complete recipe.")
     show.add_argument("id")
@@ -342,6 +343,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
                 dish=DishType(args.dish) if args.dish else None,
                 variant=VariantKind(args.variant) if args.variant else None,
                 favorite=args.favorite,
+                hidden=args.hidden,
             ),
         )
         print(

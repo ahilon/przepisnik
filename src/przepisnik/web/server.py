@@ -227,11 +227,14 @@ class RecipeHandler(BaseHTTPRequestHandler):
             favorite=values.get("favorite") == "1",
             tag=values.get("tag", ""),
             uncategorized=values.get("uncategorized") == "1",
+            hidden=values.get("hidden") == "1",
         )
         requested_page = int(values.get("page", "1"))
         if not 1 <= requested_page <= MAX_PAGE:
             raise ValueError("Invalid page")
         recipes = store.all()
+        active = [recipe for recipe in recipes if not recipe.user.hidden]
+        collection = [recipe for recipe in recipes if recipe.user.hidden == filters.hidden]
         selected = sorted(
             select_recipes(recipes, filters), key=lambda recipe: slugify(recipe.title)
         )
@@ -244,11 +247,12 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 "total": len(selected),
                 "page": page,
                 "pages": pages,
-                "tags": sorted({tag for recipe in recipes for tag in recipe.user.tags}),
+                "tags": sorted({tag for recipe in collection for tag in recipe.user.tags}),
                 "counts": {
-                    "all": len(recipes),
-                    "favorites": sum(r.user.favorite for r in recipes),
-                    "uncategorized": sum(not r.effective_meal_types for r in recipes),
+                    "all": len(active),
+                    "favorites": sum(r.user.favorite for r in active),
+                    "uncategorized": sum(not r.effective_meal_types for r in active),
+                    "hidden": len(recipes) - len(active),
                 },
             }
         )
@@ -324,6 +328,7 @@ def _summary(recipe: Recipe) -> dict[str, object]:
         "dish_types": recipe.effective_dish_types,
         "variants": list(recipe.variants),
         "favorite": recipe.user.favorite,
+        "hidden": recipe.user.hidden,
         "minutes": recipe.user.preparation_minutes,
         "tags": recipe.user.tags,
     }

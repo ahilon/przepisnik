@@ -87,6 +87,7 @@ class UserMetadata(_Model):
     """
 
     favorite: bool = False
+    hidden: bool = False
     notes: str = ""
     tags: list[NonEmptyText] = Field(default_factory=list)
     meal_types: list[MealType] | None = None
