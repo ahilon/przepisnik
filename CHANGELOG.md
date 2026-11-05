@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [1.7.0] - Unreleased
+
+- Clear all checked and unchecked shopping products after confirmation, preserving
+  concurrent edits made on another device and disabling the action on an empty list.
+- Cover cancellation, persisted clearing and stale-list conflicts with browser tests.
+
 ## [1.6.0] - Unreleased
 
 - Add a shared shopping list with custom products, editable quantities and units,
