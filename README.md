@@ -155,6 +155,9 @@ values. Ingredients without numerical quantities retain their source text. Chang
 variants or reopening a recipe restores the original serving count.
 Displayed servings accept any finite value greater than zero and up to 20,
 including fractions such as 0.7. The plus/minus buttons adjust by half a serving.
+When male and female variants have different preparation steps, a red notice
+identifies the difference. Switching variants displays that variant's ingredients
+and preparation; matching instructions do not trigger the notice.
 
 Open **Lista zakupów** in the top bar to manage the shared shopping list. Add
 ingredients from recipe details using the selected serving count, or enter custom
@@ -226,11 +229,13 @@ Meal occasions are independent of dish types and portion variants:
 | Variant | `male`, `female`, `family` |
 
 Several meal occasions may apply to one recipe. Unknown source categories remain empty.
-Respo classifies explicit Polish meal names first, then ranges entirely within 06:00-10:00,
-12:00-16:00 or 17:00-22:00 as breakfast, lunch or dinner. Sequence numbers and
-"dowolna pora dnia" do not imply a category. The original header and classification
-basis (`explicit` or `time_range`) are retained on newly imported variant sources.
-These time windows are suggestions, not nutritional facts.
+Respo uses the explicitly configured meal slots: 1 and 3 are both breakfast and
+dinner, 2 is lunch, and 4 is snack. This source-specific rule takes precedence over
+time windows and is retained as `respo_meal_number` alongside the original header.
+Unmapped slots fall back to explicit Polish meal names or conservative time ranges
+(06:00-10:00, 12:00-16:00, 17:00-22:00). Other source formats do not inherit the
+Respo numbering rule. These categories are organizational suggestions, not nutritional facts.
+`--enrich-meals` adds source categories to existing recipes while retaining manual overrides.
 
 Personal fields live under `user` and cannot be supplied by import drafts. Example
 `metadata.json` for `recipes update`:
@@ -258,6 +263,10 @@ both amount and unit, and empty titles, steps or tags are rejected.
   recipe unambiguously. Different quantities are allowed across different variants.
 - Existing differing variant, different ingredients, or ambiguous matching versions:
   report a conflict and preserve existing data. There is no `--replace` option.
+- After reviewing a missing-variant conflict, `--allow-variant-differences` explicitly
+  permits different ingredients and variant-specific steps for a single matching
+  recipe title. It never overwrites an existing variant or resolves ambiguous
+  recipe versions. Use `--dry-run` to inspect the approved addition first.
 - Per-item fingerprints ignore provenance, raw ingredient formatting and user metadata.
   Original variant assignments are recorded separately, so moving a variant does not
   cause the next scan of the same content to recreate its previous assignment.
@@ -293,6 +302,12 @@ incoming draft for review with `recipes show`.
 - `parsers/` - code parsers for frequent, stable formats (`respo`), auto-detected via
   `parsers/registry.py`. Other sources are extracted by the agent skill
   (`.agents/skills/przepisnik`) and added with `przepisnik add`.
+
+Code parsers inherit the shared `RecipeParser` abstract base class; `RespoParser`
+owns the structured Respo PDF layout and its source-specific classification.
+Import provenance retains the parser ID, filename, file checksum and page, and
+recipe details explicitly label Respo sources. Duplicate comparison remains based
+on recipe content rather than provider labels or meal-category changes.
 - `adapters/` - file format readers (PDF via PyMuPDF).
 - `web/` - local HTTP routes and bundled interface; reads use the same store and filters.
 

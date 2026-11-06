@@ -142,7 +142,7 @@ class Source(_Model):
     page: PositiveInt | None = None
     meal_label: str | None = None
     meal_type: MealType | None = None
-    meal_type_basis: Literal["explicit", "time_range"] | None = None
+    meal_type_basis: Literal["explicit", "time_range", "respo_meal_number"] | None = None
 
 
 class VariantData(_Model):
@@ -177,7 +177,7 @@ class RecipeDraft(_Model):
     meal_types: list[MealType] = Field(default_factory=list)
     dish_types: list[DishType] = Field(default_factory=list)
     meal_label: str | None = None
-    meal_type_basis: Literal["explicit", "time_range"] | None = None
+    meal_type_basis: Literal["explicit", "time_range", "respo_meal_number"] | None = None
     suggested_batch_portions: int | None = Field(
         default=None,
         ge=2,

@@ -204,7 +204,7 @@ function sourceBlock(source) {
       }
     } catch { /* Malformed source URLs are displayed as plain text below. */ }
   }
-  if (!block.childNodes.length) block.textContent = `Źródło: ${source.file || source.url || source.parser}`;
+  if (!block.childNodes.length) block.textContent = `Źródło: ${source.parser === "respo" ? "Respo · " : ""}${source.file || source.url || source.parser}`;
   if (source.page) block.append(document.createTextNode(` · strona ${source.page}`));
   return block;
 }
@@ -249,6 +249,13 @@ function renderDetail() {
     tabs.append(tab);
   }
   inner.append(tabs);
+  if (recipe.variants.male && recipe.variants.female) {
+    const stepsFor = kind => (recipe.variants[kind].steps || recipe.steps).map(step => step.trim().replace(/\s+/g, " "));
+    if (JSON.stringify(stepsFor("male")) !== JSON.stringify(stepsFor("female"))) {
+      const warning = element("p", "variant-warning", `Kroki przygotowania różnią się dla kobiety i mężczyzny. Wyświetlasz wariant: ${labels[selectedVariant]}.`);
+      warning.setAttribute("role", "note"); inner.append(warning);
+    }
+  }
   const portions = element("div", "portion-controls");
   const portionLabel = element("label", "", "Liczba porcji"); portionLabel.htmlFor = "detail-servings";
   const portionInput = element("input"); portionInput.id = "detail-servings";

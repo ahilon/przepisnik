@@ -16,6 +16,15 @@
 - Preserve favorites and recipe content on restore, read existing metadata as visible
   by default, and expose an explicit CLI hidden filter without a SQLite schema migration.
 - Cover hidden discovery, restoration, CLI filtering and mobile navigation with tests.
+- Classify Respo meal slots by number (1 and 3: breakfast and dinner, 2: lunch,
+  4: snack) before time-range inference, recorded as `respo_meal_number`.
+- Make `RecipeParser` an abstract base class inherited by `RespoParser`.
+- Add `--allow-variant-differences` to approve differing content for a missing
+  variant of one unambiguous recipe, never overwriting existing variants.
+- Show a red notice when male and female preparation steps differ, and label
+  Respo sources in recipe details.
+- Cover Respo classification, re-import deduplication, variant approval, source
+  display and variant step switching with tests.
 
 ## [1.6.0] - Unreleased
 

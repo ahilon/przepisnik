@@ -32,11 +32,17 @@ class MergeResult:
 
 
 def merge_variant(
-    versions: Sequence[Recipe], draft: RecipeDraft, kind: VariantKind, source: Source | None
+    versions: Sequence[Recipe],
+    draft: RecipeDraft,
+    kind: VariantKind,
+    source: Source | None,
+    *,
+    allow_variant_differences: bool = False,
 ) -> MergeResult:
     """Create, skip identical data, or add an unambiguous missing variant.
 
-    Different ingredients, preparation or an existing differing variant require review.
+    Explicit approval can add differing content only to a missing variant of a
+    single matching title. Existing variants and ambiguous versions are never replaced.
     """
     variant = Variant(**dict(draft.variant), source=source)
     if not versions:
@@ -76,6 +82,8 @@ def merge_variant(
             for k, v in recipe.variants.items()
         )
     ]
+    if allow_variant_differences and len(versions) == 1 and kind not in versions[0].variants:
+        candidates = [versions[0]]
     if len(candidates) != 1:
         return MergeResult(
             MergeOutcome.CONFLICT,

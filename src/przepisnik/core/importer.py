@@ -96,6 +96,7 @@ class ImportOptions:
 
     dry_run: bool = False
     enrich_meals: bool = False
+    allow_variant_differences: bool = False
 
 
 class Conflict(BaseModel):
@@ -198,7 +199,13 @@ class RecipeImporter:
                 meal_type_basis=item.draft.meal_type_basis,
             )
             versions = self._versions(item.draft.title, pending)
-            result = merge_variant(versions, item.draft, kind, source)
+            result = merge_variant(
+                versions,
+                item.draft,
+                kind,
+                source,
+                allow_variant_differences=options.allow_variant_differences,
+            )
             counts[result.outcome] += 1
             if result.outcome is MergeOutcome.CONFLICT:
                 conflicts.append(

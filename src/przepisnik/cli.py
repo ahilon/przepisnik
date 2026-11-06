@@ -167,6 +167,11 @@ def _add_merge_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument("--dry-run", action="store_true", help="Report without writing.")
     parser.add_argument(
+        "--allow-variant-differences",
+        action="store_true",
+        help="Approve differing content for a missing variant of one unambiguous recipe title.",
+    )
+    parser.add_argument(
         "--enrich-meals",
         action="store_true",
         help="Add source meal suggestions to existing recipes; keep user overrides.",
@@ -262,7 +267,11 @@ def _run_import(
     _require_migrated(args.data_dir)
     with SqliteStore(args.data_dir, read_only=args.dry_run) as store:
         importer = RecipeImporter(store, store)
-        options = ImportOptions(dry_run=args.dry_run, enrich_meals=args.enrich_meals)
+        options = ImportOptions(
+            dry_run=args.dry_run,
+            enrich_meals=args.enrich_meals,
+            allow_variant_differences=args.allow_variant_differences,
+        )
         return importer.run(recipes, VariantKind(args.variant), origin, options)
 
 
