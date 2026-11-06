@@ -1,0 +1,11 @@
+[Unit]
+Description=Przepisnik verified OneDrive backup and Docker update
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/przepisnik-deploy
+TimeoutStartSec=infinity
+UMask=0077

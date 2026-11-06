@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Przepisnik backup and update
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Europe/Warsaw
+Persistent=true
+Unit=przepisnik-backup.service
+
+[Install]
+WantedBy=timers.target

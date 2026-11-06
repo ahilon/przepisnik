@@ -1,0 +1,42 @@
+name: przepisnik
+services:
+  app:
+    image: przepisnik-local:current
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    user: "${APP_UID:?Set APP_UID}:${APP_GID:?Set APP_GID}"
+    entrypoint: ["/app/.venv/bin/przepisnik"]
+    command: ["--data-dir", "/data", "serve", "--config", "/config/przepisnik.toml"]
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ${APP_DIR:?Set APP_DIR}/data
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${APP_DIR}/przepisnik.toml
+        target: /config/przepisnik.toml
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test:
+        - CMD
+        - /app/.venv/bin/python
+        - -c
+        - "import urllib.request; r=urllib.request.Request('http://localhost:8000/api/recipes', headers={'Host': '${PUBLIC_AUTHORITY:?Set PUBLIC_AUTHORITY}'}); urllib.request.urlopen(r, timeout=3).read()"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${PUBLIC_BIND:-0.0.0.0}:8000:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./maintenance.html:/srv/maintenance.html:ro
+      - ${DEPLOY_STATE:?Set DEPLOY_STATE}/maintenance:/maintenance:ro

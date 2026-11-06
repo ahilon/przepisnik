@@ -25,6 +25,10 @@
   Respo sources in recipe details.
 - Cover Respo classification, re-import deduplication, variant approval, source
   display and variant step switching with tests.
+- Add a Raspberry Pi Docker deployment with a Caddy proxy, maintenance page,
+  verified daily OneDrive backups with 14-archive retention and fast-forward updates.
+- Cover backup verification, failure handling and retention with a shell test.
+- Simplify the favorite browser test.
 
 ## [1.6.0] - Unreleased
 

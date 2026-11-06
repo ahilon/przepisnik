@@ -1,0 +1,9 @@
+# Install as /etc/przepisnik-deploy.conf, owned by root, mode 0600.
+APP_DIR=/home/ahilon/przepisnik
+DEPLOY_USER=ahilon
+DEPLOY_BRANCH=main
+DEPLOY_STATE=/var/lib/przepisnik-deploy
+BACKUP_REMOTE=Przepisnik:Backup/Przepisnik
+RCLONE_CONFIG=/home/ahilon/.config/rclone/rclone.conf
+PUBLIC_AUTHORITY=192.168.100.225:8000
+PUBLIC_BIND=0.0.0.0

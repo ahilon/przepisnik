@@ -1,5 +1,9 @@
 # Set up your own instance
 
+For Raspberry Pi Docker deployment with existing native-service data, OneDrive
+backups, scheduled updates and a maintenance page, see
+[the Raspberry deployment guide](docker/raspberry/README.md).
+
 ## Install
 
 Install Git, Python 3.12 or newer, and uv. Clone this repository, enter its folder,

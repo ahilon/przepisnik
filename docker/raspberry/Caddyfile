@@ -1,0 +1,31 @@
+{
+    auto_https off
+    admin off
+}
+:80 {
+    @maintenance file {
+        root /maintenance
+        try_files /enabled
+    }
+    handle @maintenance {
+        header Retry-After "30"
+        header Cache-Control "no-store"
+        root * /srv
+        rewrite * /maintenance.html
+        file_server {
+            status 503
+        }
+    }
+    handle {
+        reverse_proxy app:8000
+    }
+    handle_errors {
+        header Retry-After "30"
+        header Cache-Control "no-store"
+        root * /srv
+        rewrite * /maintenance.html
+        file_server {
+            status 503
+        }
+    }
+}
