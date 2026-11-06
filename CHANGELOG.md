@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.8.0] - Unreleased
+
+- Classify Respo meals by their number (1 and 3: breakfast and dinner, 2: lunch,
+  4: snack) before time-range inference, recorded as `respo_meal_number`.
+- Make `RecipeParser` an abstract base class inherited by `RespoParser`.
+- Label Respo sources in recipe details.
+
 ## [1.7.0] - Unreleased
 
 - Clear all checked and unchecked shopping products after confirmation, preserving

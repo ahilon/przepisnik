@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -19,18 +20,18 @@ class ParseResult:
     warnings: list[str] = field(default_factory=list)
 
 
-class RecipeParser(Protocol):
-    """Extracts recipes from sources of one specific format."""
+class RecipeParser(ABC):
+    """Base class for source-specific parsers producing validated recipe drafts."""
 
     @property
+    @abstractmethod
     def name(self) -> str:
         """Short identifier stored in each variant's source, e.g. ``"respo"``."""
-        ...
 
+    @abstractmethod
     def can_parse(self, source: Path) -> bool:
         """Return True if the source looks like this parser's format."""
-        ...
 
+    @abstractmethod
     def parse(self, source: Path) -> ParseResult:
         """Extract all recipes from the source."""
-        ...
