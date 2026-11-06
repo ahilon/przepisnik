@@ -13,16 +13,16 @@ A recipe block looks like (``<dash>`` is an en dash)::
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ValidationError
 
 from przepisnik.adapters.pdf import PdfDocument
 from przepisnik.core.importer import ExtractedRecipe
 from przepisnik.core.meals import classify_meal
-from przepisnik.core.models import Ingredient, Nutrition, RecipeDraft, VariantData
+from przepisnik.core.models import Ingredient, MealType, Nutrition, RecipeDraft, VariantData
 from przepisnik.errors import SourceReadError
-from przepisnik.parsers.base import ParseResult
+from przepisnik.parsers.base import ParseResult, RecipeParser
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -34,7 +34,13 @@ if TYPE_CHECKING:
     DocumentOpener = Callable[[Path], AbstractContextManager[Document]]
 
 _NUMBER = r"\d+(?:[.,]\d+)?"
-MEAL_HEADER = re.compile(r"^Posiłek \d+ / ")
+MEAL_HEADER = re.compile(r"^Posiłek (\d+) / ")
+RESPO_MEAL_TYPES: dict[int, tuple[MealType, ...]] = {
+    1: (MealType.BREAKFAST, MealType.DINNER),
+    2: (MealType.LUNCH,),
+    3: (MealType.BREAKFAST, MealType.DINNER),
+    4: (MealType.SNACK,),
+}
 DAY_HEADER = re.compile(r"^Dzień \d+$")
 KCAL_VALUE = re.compile(rf"^{_NUMBER}$")
 MACRO_VALUE = re.compile(rf"^({_NUMBER}) g$")
@@ -64,7 +70,7 @@ class RespoFormatError(ValueError):
     """A recipe block does not follow the Respo layout."""
 
 
-class RespoParser:
+class RespoParser(RecipeParser):
     """Extract recipes, nutrition and dish photos from Respo diet-plan PDFs."""
 
     def __init__(self, opener: DocumentOpener = PdfDocument) -> None:
@@ -122,15 +128,15 @@ class RespoParser:
             except (RespoFormatError, ValidationError) as exc:
                 warnings.append(f"page {header.page}: skipped recipe block ({exc})")
                 continue
-            classification = classify_meal(header.text)
+            meal_types, basis = _classify_respo_meal(header.text)
             draft = draft.model_copy(
                 update={
-                    "meal_types": [classification.meal_type] if classification.meal_type else [],
+                    "meal_types": meal_types,
                     "meal_label": header.text,
-                    "meal_type_basis": classification.basis,
+                    "meal_type_basis": basis,
                 }
             )
-            if classification.meal_type is None:
+            if not meal_types:
                 warnings.append(f"page {header.page}: meal type unknown for {header.text!r}")
             image_ref = _take_nearest_image(images, header)
             image = document.extract_image(image_ref) if image_ref else None
@@ -138,6 +144,17 @@ class RespoParser:
                 warnings.append(f"page {header.page}: no photo found for '{draft.title}'")
             recipes.append(ExtractedRecipe(draft=draft, page=header.page, image=image))
         return ParseResult(recipes=recipes, warnings=warnings)
+
+
+def _classify_respo_meal(
+    label: str,
+) -> tuple[list[MealType], Literal["explicit", "time_range", "respo_meal_number"] | None]:
+    """Apply the user's Respo meal-number mapping before generic label inference."""
+    match = MEAL_HEADER.match(label)
+    if match and (mapped := RESPO_MEAL_TYPES.get(int(match.group(1)))):
+        return list(mapped), "respo_meal_number"
+    classification = classify_meal(label)
+    return ([classification.meal_type] if classification.meal_type else []), classification.basis
 
 
 def _looks_like_recipe(block: Sequence[TextLine]) -> bool:

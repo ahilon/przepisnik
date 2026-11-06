@@ -204,7 +204,7 @@ function sourceBlock(source) {
       }
     } catch { /* Malformed source URLs are displayed as plain text below. */ }
   }
-  if (!block.childNodes.length) block.textContent = `Źródło: ${source.file || source.url || source.parser}`;
+  if (!block.childNodes.length) block.textContent = `Źródło: ${source.parser === "respo" ? "Respo · " : ""}${source.file || source.url || source.parser}`;
   if (source.page) block.append(document.createTextNode(` · strona ${source.page}`));
   return block;
 }
