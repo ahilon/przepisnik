@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [1.9.0] - Unreleased
+
+- Add `--allow-variant-differences` to approve differing ingredients and steps for
+  a missing variant of one unambiguous recipe, never overwriting existing variants.
+- Show a red notice in recipe details when male and female preparation steps differ.
+
 ## [1.8.0] - Unreleased
 
 - Classify Respo meals by their number (1 and 3: breakfast and dinner, 2: lunch,
