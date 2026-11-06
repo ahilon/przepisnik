@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Protocol
 from pydantic import BaseModel, Field
 
 from przepisnik.core.identity import draft_fingerprint
-from przepisnik.core.merge import MergeOutcome, merge_variant
+from przepisnik.core.merge import MergeOutcome, merge_variant, replace_variant
 from przepisnik.core.models import ImportedSource, Recipe, RecipeDraft, Source, VariantKind, slugify
 
 if TYPE_CHECKING:
@@ -97,6 +97,8 @@ class ImportOptions:
     dry_run: bool = False
     enrich_meals: bool = False
     allow_variant_differences: bool = False
+    force: bool = False
+    """Re-read already imported items and overwrite this variant of matching recipes."""
 
 
 class Conflict(BaseModel):
@@ -171,7 +173,9 @@ class RecipeImporter:
         conflicts: list[Conflict] = []
         for item in recipes:
             fingerprint = draft_fingerprint(item.draft)
-            consumed_id = consumed.get(fingerprint) or self._store.imported(fingerprint, kind)
+            consumed_id = consumed.get(fingerprint) or (
+                None if options.force else self._store.imported(fingerprint, kind)
+            )
             if consumed_id:
                 recipe = pending.get(consumed_id) or self._store.get(consumed_id)
                 if recipe is not None:
@@ -199,13 +203,16 @@ class RecipeImporter:
                 meal_type_basis=item.draft.meal_type_basis,
             )
             versions = self._versions(item.draft.title, pending)
-            result = merge_variant(
-                versions,
-                item.draft,
-                kind,
-                source,
-                allow_variant_differences=options.allow_variant_differences,
-            )
+            if options.force:
+                result = replace_variant(versions, item.draft, kind, source)
+            else:
+                result = merge_variant(
+                    versions,
+                    item.draft,
+                    kind,
+                    source,
+                    allow_variant_differences=options.allow_variant_differences,
+                )
             counts[result.outcome] += 1
             if result.outcome is MergeOutcome.CONFLICT:
                 conflicts.append(

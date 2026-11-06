@@ -172,6 +172,14 @@ def _add_merge_arguments(parser: argparse.ArgumentParser) -> None:
         help="Approve differing content for a missing variant of one unambiguous recipe title.",
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Re-read already imported items and overwrite this variant of the single "
+            "recipe with each title; keeps personal fields, other variants and photos."
+        ),
+    )
+    parser.add_argument(
         "--enrich-meals",
         action="store_true",
         help="Add source meal suggestions to existing recipes; keep user overrides.",
@@ -271,6 +279,7 @@ def _run_import(
             dry_run=args.dry_run,
             enrich_meals=args.enrich_meals,
             allow_variant_differences=args.allow_variant_differences,
+            force=args.force,
         )
         return importer.run(recipes, VariantKind(args.variant), origin, options)
 
