@@ -1,4 +1,4 @@
-"""Pure, conservative import decisions; existing data is never replaced."""
+"""Pure import decisions: conservative merging, plus explicitly forced replacement."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ class MergeOutcome(StrEnum):
 
     CREATED = "created"
     VARIANT_ADDED = "variant_added"
+    REPLACED = "replaced"
     UNCHANGED = "unchanged"
     CONFLICT = "conflict"
 
@@ -46,27 +47,9 @@ def merge_variant(
     """
     variant = Variant(**dict(draft.variant), source=source)
     if not versions:
-        return MergeResult(
-            MergeOutcome.CREATED,
-            Recipe(
-                id=recipe_id_for(draft.title),
-                title=draft.title,
-                steps=draft.steps,
-                notes=draft.notes,
-                meal_types=list(dict.fromkeys(draft.meal_types)),
-                dish_types=list(dict.fromkeys(draft.dish_types)),
-                suggested_batch_portions=draft.suggested_batch_portions,
-                variants={kind: variant},
-            ),
-        )
-    fingerprint = draft_fingerprint(draft)
-    for recipe in versions:
-        current = recipe.variants.get(kind)
-        if (
-            current
-            and content_fingerprint(recipe.title, current, recipe.steps_for(kind)) == fingerprint
-        ):
-            return MergeResult(MergeOutcome.UNCHANGED, recipe)
+        return _create(draft, kind, variant)
+    if unchanged := _find_identical(versions, draft, kind):
+        return MergeResult(MergeOutcome.UNCHANGED, unchanged)
 
     incoming_names = {
         ingredient.name.casefold().strip() for ingredient in draft.variant.ingredients
@@ -98,3 +81,70 @@ def merge_variant(
         MergeOutcome.VARIANT_ADDED,
         target.model_copy(update={"variants": {**target.variants, kind: variant}}),
     )
+
+
+def replace_variant(
+    versions: Sequence[Recipe], draft: RecipeDraft, kind: VariantKind, source: Source | None
+) -> MergeResult:
+    """Overwrite one variant of the single recipe with this title (explicit ``--force``).
+
+    Other variants, personal fields, categories and the photo are retained. Several
+    recipe versions sharing the title remain a conflict because the target is ambiguous.
+    """
+    variant = Variant(**dict(draft.variant), source=source)
+    if not versions:
+        return _create(draft, kind, variant)
+    if unchanged := _find_identical(versions, draft, kind):
+        return MergeResult(MergeOutcome.UNCHANGED, unchanged)
+    if len(versions) != 1:
+        return MergeResult(
+            MergeOutcome.CONFLICT,
+            versions[0],
+            "Several recipe versions share this title; forced replacement is ambiguous.",
+        )
+    target = versions[0]
+    others = {k: v for k, v in target.variants.items() if k != kind}
+    if not others:
+        # The only variant owns the shared steps, so replace them directly.
+        updated = target.model_copy(
+            update={
+                "steps": draft.steps,
+                "variants": {kind: variant.model_copy(update={"steps": None})},
+            }
+        )
+    else:
+        steps = None if draft.steps == target.steps else draft.steps
+        updated = target.model_copy(
+            update={"variants": {**others, kind: variant.model_copy(update={"steps": steps})}}
+        )
+    return MergeResult(MergeOutcome.REPLACED, updated)
+
+
+def _create(draft: RecipeDraft, kind: VariantKind, variant: Variant) -> MergeResult:
+    return MergeResult(
+        MergeOutcome.CREATED,
+        Recipe(
+            id=recipe_id_for(draft.title),
+            title=draft.title,
+            steps=draft.steps,
+            notes=draft.notes,
+            meal_types=list(dict.fromkeys(draft.meal_types)),
+            dish_types=list(dict.fromkeys(draft.dish_types)),
+            suggested_batch_portions=draft.suggested_batch_portions,
+            variants={kind: variant},
+        ),
+    )
+
+
+def _find_identical(
+    versions: Sequence[Recipe], draft: RecipeDraft, kind: VariantKind
+) -> Recipe | None:
+    fingerprint = draft_fingerprint(draft)
+    for recipe in versions:
+        current = recipe.variants.get(kind)
+        if (
+            current
+            and content_fingerprint(recipe.title, current, recipe.steps_for(kind)) == fingerprint
+        ):
+            return recipe
+    return None

@@ -261,7 +261,11 @@ both amount and unit, and empty titles, steps or tags are rejected.
 - Missing variant: add only when ingredient names and preparation identify one existing
   recipe unambiguously. Different quantities are allowed across different variants.
 - Existing differing variant, different ingredients, or ambiguous matching versions:
-  report a conflict and preserve existing data. There is no `--replace` option.
+  report a conflict and preserve existing data unless `--force` is given.
+- `--force` re-reads already imported items and overwrites the selected variant of the
+  single recipe with each title (ingredients, nutrition, servings, source and steps).
+  Other variants, personal fields, categories and photos are kept; several recipe
+  versions sharing a title remain a conflict. Back up `data/` and run `--dry-run` first.
 - After reviewing a missing-variant conflict, `--allow-variant-differences` explicitly
   permits different ingredients and variant-specific steps for a single matching
   recipe title. It never overwrites an existing variant or resolves ambiguous

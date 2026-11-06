@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.9.1] - Unreleased
+
+- Parse the older quantity-first Respo ingredient layout (`2 sztuki pomidorów (320 g)`,
+  `0 -- makaronu (60 g)`) instead of joining all ingredients into one entry.
+- Add `--force` to `import` and `add` to re-read imported items and overwrite the
+  selected variant of the single recipe with each title, keeping personal fields,
+  other variants and photos.
+
 ## [1.9.0] - Unreleased
 
 - Add `--allow-variant-differences` to approve differing ingredients and steps for

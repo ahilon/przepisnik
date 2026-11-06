@@ -8,6 +8,12 @@ A recipe block looks like (``<dash>`` is an en dash)::
     Pinsa <dash> 0.5 sztuki (110 g)                  (ingredients, may wrap)
     Do podania:                                      (optional ingredient group)
     1. Piekarnik nagrzewamy ...                      (numbered steps, may wrap)
+
+Older exports put the quantity first and have no dash; ``--`` marks a missing
+household measure::
+
+    2 sztuki pomidorów (320 g)
+    0 -- makaronu spaghetti (60 g)
 """
 
 from __future__ import annotations
@@ -54,6 +60,12 @@ QUANTITY_METRIC = re.compile(rf"^(?P<metric>{_NUMBER}) (?P<metric_unit>g|ml)$")
 QUANTITY_FULL = re.compile(
     rf"^(?P<amount>{_NUMBER}) (?P<unit>.+?) \((?P<metric>{_NUMBER}) (?P<metric_unit>g|ml)\)$"
 )
+LEGACY_INGREDIENT = re.compile(
+    rf"^(?P<amount>{_NUMBER}) (?P<unit>\S+) (?P<name>.+?) "
+    rf"\((?P<metric>{_NUMBER}) (?P<metric_unit>g|ml)\)$"
+)
+LEGACY_START = re.compile(rf"^{_NUMBER} \S+ ")
+MISSING_UNIT = "--"
 SPACE_BEFORE_PUNCTUATION = re.compile(r"\s+([.,;:!?])")
 
 KCAL_LABEL = "Kcal"
@@ -229,7 +241,8 @@ def _parse_ingredients(texts: Sequence[str], start: int) -> tuple[list[Ingredien
 def _starts_new_ingredient(buffer: str, line: str) -> bool:
     """Decide whether ``line`` begins a new ingredient or continues a wrapped one."""
     if SEPARATOR not in buffer:
-        return False  # the name itself wrapped before the dash
+        # Older quantity-first layout, otherwise the name wrapped before the dash.
+        return bool(LEGACY_INGREDIENT.match(_tidy(buffer)) and LEGACY_START.match(line))
     return _is_complete_ingredient(buffer) or SEPARATOR in line
 
 
@@ -245,7 +258,7 @@ def _parse_ingredient(text: str, group: str | None) -> Ingredient:
     raw = _tidy(text)
     match = INGREDIENT.match(raw)
     if match is None:
-        return Ingredient(name=raw, group=group, raw=raw)
+        return _parse_legacy_ingredient(raw, group)
     name, quantity = match.group("name"), match.group("quantity")
     if full := QUANTITY_FULL.match(quantity):
         return Ingredient(
@@ -266,6 +279,24 @@ def _parse_ingredient(text: str, group: str | None) -> Ingredient:
             raw=raw,
         )
     return Ingredient(name=name, group=group, raw=raw)
+
+
+def _parse_legacy_ingredient(raw: str, group: str | None) -> Ingredient:
+    """Parse the older quantity-first layout, keeping unknown text verbatim."""
+    legacy = LEGACY_INGREDIENT.match(raw)
+    if legacy is None:
+        return Ingredient(name=raw, group=group, raw=raw)
+    amount = _to_float(legacy.group("amount"))
+    has_measure = legacy.group("unit") != MISSING_UNIT and amount > 0
+    return Ingredient(
+        name=legacy.group("name"),
+        amount=amount if has_measure else None,
+        unit=legacy.group("unit") if has_measure else None,
+        metric_amount=_to_float(legacy.group("metric")),
+        metric_unit=legacy.group("metric_unit"),
+        group=group,
+        raw=raw,
+    )
 
 
 def _parse_steps(texts: Sequence[str]) -> list[str]:

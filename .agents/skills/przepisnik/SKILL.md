@@ -45,7 +45,9 @@ person's name or greeting; you may show hints
    - Existing identical content is skipped, including reimports after a variant move.
    - Missing unambiguous variants are added without changing existing metadata.
    - Different content or ambiguous versions remain conflicts. Show them for review;
-     never attempt `--replace`, direct writes or automatic new versions.
+     never attempt direct writes or automatic new versions. Use `--force` only when the
+     user explicitly asks to reimport and overwrite, after a `data/` backup and a
+     `--dry-run` reviewed with the user.
    - Repeated sources are checked item by item; previously conflicting items can be retried.
    - Use `--enrich-meals` only when the user requests category enrichment of existing
      recipes. It adds source suggestions while preserving manual category overrides.
