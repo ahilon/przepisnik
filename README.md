@@ -155,6 +155,9 @@ values. Ingredients without numerical quantities retain their source text. Chang
 variants or reopening a recipe restores the original serving count.
 Displayed servings accept any finite value greater than zero and up to 20,
 including fractions such as 0.7. The plus/minus buttons adjust by half a serving.
+When male and female variants have different preparation steps, a red notice
+identifies the difference. Switching variants displays that variant's ingredients
+and preparation; matching instructions do not trigger the notice.
 
 Open **Lista zakupów** in the top bar to manage the shared shopping list. Add
 ingredients from recipe details using the selected serving count, or enter custom
@@ -259,6 +262,10 @@ both amount and unit, and empty titles, steps or tags are rejected.
   recipe unambiguously. Different quantities are allowed across different variants.
 - Existing differing variant, different ingredients, or ambiguous matching versions:
   report a conflict and preserve existing data. There is no `--replace` option.
+- After reviewing a missing-variant conflict, `--allow-variant-differences` explicitly
+  permits different ingredients and variant-specific steps for a single matching
+  recipe title. It never overwrites an existing variant or resolves ambiguous
+  recipe versions. Use `--dry-run` to inspect the approved addition first.
 - Per-item fingerprints ignore provenance, raw ingredient formatting and user metadata.
   Original variant assignments are recorded separately, so moving a variant does not
   cause the next scan of the same content to recreate its previous assignment.
