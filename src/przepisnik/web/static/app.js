@@ -13,6 +13,8 @@ let detailRecipe = null;
 let selectedVariant = "";
 let displayedServings = null;
 let searchTimer;
+let knownTags = [];
+let pendingTagSave = Promise.resolve();
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -97,6 +99,68 @@ function metadataButton(recipe, field, activeLabel, inactiveLabel, compact = fal
   });
   return button;
 }
+const tagKey = tag => tag.toLocaleLowerCase("pl-PL");
+function tagEditor(id, tags, onChange = null) {
+  const box = element("div", "tag-editor");
+  const label = element("label", "", "Tagi"); label.htmlFor = id;
+  const chips = element("ul", "tag-chips"); chips.setAttribute("aria-label", "Przypisane tagi");
+  const row = element("div", "tag-add");
+  const input = element("input"); input.id = id; input.maxLength = 40; input.autocomplete = "off";
+  input.placeholder = "Wpisz własny tag, np. szybkie";
+  const options = element("datalist"); options.id = `${id}-options`; input.setAttribute("list", options.id);
+  const add = element("button", "secondary", "Dodaj tag"); add.type = "button";
+  const error = element("p", "error"); error.hidden = true; error.setAttribute("role", "alert");
+  let values = [...tags];
+  function render() {
+    chips.replaceChildren(...values.map(tag => {
+      const chip = element("li", "tag-chip", `#${tag}`);
+      const remove = element("button", "tag-remove", "×"); remove.type = "button";
+      remove.setAttribute("aria-label", `Usuń tag: ${tag}`);
+      remove.addEventListener("click", () => { commit(values.filter(value => value !== tag)); input.focus(); });
+      chip.append(remove); return chip;
+    }));
+    chips.hidden = !values.length;
+    const used = new Set(values.map(tagKey));
+    options.replaceChildren(...knownTags.filter(tag => !used.has(tagKey(tag))).map(tag => new Option(tag, tag)));
+  }
+  async function commit(next) {
+    const previous = values; values = next; render();
+    if (!onChange) return;
+    error.hidden = true; box.querySelectorAll("button, input").forEach(control => { control.disabled = true; });
+    try { await onChange(values); }
+    catch (failure) { values = previous; render(); error.textContent = failure.message; error.hidden = false; }
+    finally { box.querySelectorAll("button, input").forEach(control => { control.disabled = false; }); }
+  }
+  function addFromInput() {
+    const seen = new Set(values.map(tagKey)); const next = [...values];
+    for (const tag of input.value.split(",").map(text => text.trim().replace(/^#+/, "").trim()).filter(Boolean)) {
+      if (!seen.has(tagKey(tag))) { seen.add(tagKey(tag)); next.push(tag); }
+    }
+    input.value = "";
+    if (next.length !== values.length) commit(next);
+  }
+  input.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === ",") { event.preventDefault(); addFromInput(); } });
+  add.addEventListener("click", () => { addFromInput(); input.focus(); });
+  row.append(input, add); box.append(label, chips, row, options, error); render();
+  box.tags = () => { addFromInput(); return values; };
+  return box;
+}
+function saveRecipeTags(id, tags) {
+  pendingTagSave = writeRecipeTags(id, tags);
+  return pendingTagSave;
+}
+async function writeRecipeTags(id, tags) {
+  const current = await request(`/api/recipes/${encodeURIComponent(id)}`);
+  const response = await fetch(`/api/recipes/${encodeURIComponent(id)}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ recipe: { user: { ...current.user, tags } }, updated_at: current.updated_at })
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || "Nie udało się zapisać tagów.");
+  const updated = await request(`/api/recipes/${encodeURIComponent(id)}`);
+  if (detailRecipe?.id === id) detailRecipe = updated;
+  loadRecipes();
+}
 function query() {
   const params = new URLSearchParams({ page: String(state.page) });
   for (const [key, value] of Object.entries({ q: $("#search").value.trim(), meal: state.meal,
@@ -131,6 +195,7 @@ async function loadRecipes() {
       const target = $(`#count-${name}`);
       if (target) target.textContent = number;
     }
+    knownTags = result.tags;
     const oldTag = $("#tag").value;
     $("#tag").replaceChildren(new Option("Wszystkie tagi", ""), ...result.tags.map(tag => new Option(tag, tag)));
     $("#tag").value = oldTag;
@@ -149,8 +214,15 @@ async function loadRecipes() {
 }
 function refresh() { state.page = 1; loadRecipes(); }
 function updateControls() {
+  const dishTab = state.meal ? "" : $("#dish").value;
+  document.querySelectorAll("[data-dish-tab]").forEach(button => {
+    const active = button.dataset.dishTab === dishTab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const dishTabActive = Boolean(document.querySelector("[data-dish-tab].active"));
   document.querySelectorAll("[data-meal]").forEach(button => {
-    const active = button.dataset.meal === state.meal;
+    const active = !dishTabActive && button.dataset.meal === state.meal;
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   });
@@ -228,15 +300,35 @@ function renderDetail() {
   inner.append(title);
   const edit = element("button", "primary", "Edytuj przepis");
   edit.type = "button";
-  edit.addEventListener("click", () => openEditor(recipe));
+  edit.addEventListener("click", async () => {
+    edit.disabled = true;
+    try {
+      await pendingTagSave.catch(() => {});
+      openEditor(await request(`/api/recipes/${encodeURIComponent(recipe.id)}`));
+    } catch (failure) {
+      const notice = element("p", "error", failure.message); notice.setAttribute("role", "alert");
+      actions.insertAdjacentElement("afterend", notice);
+    } finally { edit.disabled = false; }
+  });
   const actions = element("div", "detail-actions");
   const shoppingButton = element("button", "secondary", "Dodaj do listy zakupów");
   shoppingButton.type = "button";
+  let shoppingNotice = null;
   shoppingButton.addEventListener("click", async () => {
     if ($("#detail-servings").getAttribute("aria-invalid") === "true") return;
-    shoppingButton.disabled = true;
-    try { await addRecipeToShopping(recipe, selectedVariant, displayedServings ?? variant.servings); }
-    finally { shoppingButton.disabled = false; }
+    shoppingButton.disabled = true; shoppingNotice?.remove();
+    const count = displayedServings ?? variant.servings;
+    try {
+      await addRecipeToShopping(recipe, selectedVariant, count);
+      shoppingNotice = element("p", "shopping-notice", `Dodano składniki dla ${number(count)} porcji do listy zakupów. `);
+      shoppingNotice.setAttribute("role", "status");
+      const show = element("button", "link-button", "Pokaż listę"); show.type = "button";
+      show.addEventListener("click", openShopping);
+      shoppingNotice.append(show);
+    } catch (failure) {
+      shoppingNotice = element("p", "error", failure.message); shoppingNotice.setAttribute("role", "alert");
+    } finally { shoppingButton.disabled = false; }
+    actions.insertAdjacentElement("afterend", shoppingNotice);
   });
   actions.append(edit, favoriteButton(recipe), metadataButton(recipe, "hidden", "Przywróć przepis", "Ukryj przepis"), shoppingButton); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
@@ -321,7 +413,9 @@ function renderDetail() {
     const notes = element("section", "notes"); notes.append(element("h3", "", heading));
     texts.forEach(text => notes.append(element("p", "", text))); inner.append(notes);
   }
-  if (recipe.user.tags.length) inner.append(element("p", "detail-hint", recipe.user.tags.map(tag => `#${tag}`).join("  ")));
+  const tags = element("section", "notes detail-tags");
+  tags.append(tagEditor("detail-tags", recipe.user.tags, values => saveRecipeTags(recipe.id, values)));
+  inner.append(tags);
   const source = sourceBlock(variant.source); if (source) inner.append(source);
   content.append(inner);
 }
@@ -341,11 +435,17 @@ async function openRecipe(id) {
   }
 }
 $("#filters").addEventListener("submit", event => event.preventDefault());
-$("#filters").addEventListener("change", refresh);
+$("#filters").addEventListener("change", () => { updateControls(); refresh(); });
 $("#search").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(refresh, 220); });
 document.querySelectorAll("[data-meal]").forEach(button => button.addEventListener("click", () => {
   state.meal = button.dataset.meal;
   if (state.meal && state.collection === "uncategorized") state.collection = "all";
+  if (!state.meal && document.querySelector(`[data-dish-tab="${CSS.escape($("#dish").value)}"]`)) $("#dish").value = "";
+  updateControls(); refresh();
+}));
+document.querySelectorAll("[data-dish-tab]").forEach(button => button.addEventListener("click", () => {
+  state.meal = "";
+  $("#dish").value = button.dataset.dishTab;
   updateControls(); refresh();
 }));
 document.querySelectorAll("[data-collection]").forEach(button => button.addEventListener("click", () => {
@@ -505,7 +605,7 @@ function openEditor(recipe = null) {
     duration.append(box);
   }
   form.append(element("h3", "", "Czas przygotowania"), duration);
-  editorField(form, "edit-tags", "Tagi (oddziel przecinkami)", recipe?.user.tags.join(", "));
+  const tags = tagEditor("edit-tags", recipe?.user.tags || []); tags.id = "edit-tags-box"; form.append(tags);
   editorField(form, "edit-notes", "Twoje notatki", recipe?.user.notes, "textarea");
   const favorite = editorField(form, "edit-favorite", "Ulubiony", "", "checkbox"); favorite.checked = recipe?.user.favorite || false;
   const variants = recipe?.variants || { family: { servings: 1, ingredients: [], nutrition: null } };
@@ -526,12 +626,13 @@ function openEditor(recipe = null) {
     const file = upload.files[0]; previewUrl = file ? URL.createObjectURL(file) : null;
     preview.src = previewUrl || recipe?.image_url || "/empty_dish.png";
   });
+  const footer = element("div", "editor-footer");
   const error = element("p", "error"); error.id = "editor-error"; error.hidden = true; error.setAttribute("role", "alert");
   const actions = element("div", "editor-actions");
   const save = element("button", "primary", "Zapisz przepis"); save.type = "submit";
   const cancel = element("button", "secondary", "Anuluj"); cancel.type = "button";
   cancel.addEventListener("click", () => $("#editor").close());
-  actions.append(save, cancel); form.append(error, actions);
+  actions.append(save, cancel); footer.append(error, actions); form.append(footer);
   $("#editor").showModal();
 }
 function readUpload(file) {
@@ -580,7 +681,7 @@ $("#recipe-form").addEventListener("submit", async event => {
       steps: editingRecipe?.steps || Object.values(variants)[0].steps,
       variants,
       user: { ...editingRecipe?.user, favorite: $("#edit-favorite").checked,
-        notes: $("#edit-notes").value, tags: $("#edit-tags").value.split(",").map(tag => tag.trim()).filter(Boolean),
+        notes: $("#edit-notes").value, tags: $("#edit-tags-box").tags(),
         preparation_minutes: preparationMinutes || null,
         meal_types: categories("edit-meals", "meal_types"), dish_types: categories("edit-dishes", "dish_types") }
     };

@@ -148,6 +148,8 @@ def test_fractional_servings_are_used_in_shopping_list(portions_page: Page) -> N
     page = portions_page
     _set_servings(page, "0.7")
     page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
+    expect(page.locator(".shopping-notice")).to_contain_text("0,7 porcji")
+    page.get_by_role("button", name="Pokaż listę", exact=True).click()
     expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_visible()
     row = page.locator(".shopping-row").filter(has=page.get_by_text("Rice", exact=True))
     expect(row.get_by_label("Ilość", exact=True)).to_have_value("35")

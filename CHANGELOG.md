@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [1.10.0] - Unreleased
+
+- Add a "Zupy" shortcut tab that filters recipes by the soup dish type.
+- Keep the recipe editor's save and cancel buttons pinned while scrolling.
+- Stay on the recipe after adding it to the shopping list and show a confirmation
+  with a link to the list.
+- Export products still to buy from the shopping list to PDF through the print dialog.
+- Show "Wyczyść listę" as a red text action and remove the redundant refresh button.
+- Add and remove custom tags in recipe details and the editor, with suggestions from
+  existing tags.
+
 ## [1.9.1] - Unreleased
 
 - Parse the older quantity-first Respo ingredient layout (`2 sztuki pomidorów (320 g)`,
