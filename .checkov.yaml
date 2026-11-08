@@ -1,0 +1,24 @@
+# Checkov static checks for infrastructure configuration, read automatically from the
+# repository root: the Docker image, GitHub Actions workflows and committed secrets.
+# Python code quality is covered separately by Ruff, mypy and pytest.
+directory:
+  - .
+framework:
+  - dockerfile
+  - github_actions
+  - secrets
+# Local-only folders: environments, caches, build output and personal recipe data.
+skip-path:
+  - .venv
+  - .uv-cache
+  - .mypy_cache
+  - .ruff_cache
+  - .pytest_cache
+  - htmlcov
+  - dist
+  - data
+  - przepisy
+  - referencja
+  - artifacts
+compact: true
+quiet: true

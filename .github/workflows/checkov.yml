@@ -1,0 +1,20 @@
+name: Checkov
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checkov:
+    name: Checkov
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+
+      # Settings (scanned frameworks and skipped paths) are read from .checkov.yaml.
+      - run: uvx --python 3.12 --from checkov==3.4.3 checkov

@@ -323,3 +323,14 @@ The checks do not modify files. To format and check manually:
 ```bash
 uv run ruff format . && uv run ruff check . && uv run python -m mypy src
 ```
+
+Checkov statically checks the Docker image and GitHub Actions workflows for insecure
+configuration, and scans configuration files (not Python sources) for committed
+secrets. It runs as a separate pinned tool, not a project dependency, using the
+settings in `.checkov.yaml`:
+
+```bash
+uvx --python 3.12 --from checkov==3.4.3 checkov
+```
+
+`scripts/check.cmd` and the `Checkov` GitHub workflow run the same scan.

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.10.1] - Unreleased
+
+- Add unit tests for the domain model, merging, import, storage, migrations, Respo
+  parsing, PDF reading, configuration and the CLI, with pytest-cov coverage settings.
+- Scan the Docker image, GitHub Actions workflows and configuration secrets with
+  Checkov locally (`scripts/check.cmd`) and in a new CI workflow.
+- Move the demo readiness check into the image as a Dockerfile `HEALTHCHECK`.
+
 ## [1.10.0] - Unreleased
 
 - Add a "Zupy" shortcut tab that filters recipes by the soup dish type.
