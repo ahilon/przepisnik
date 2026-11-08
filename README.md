@@ -334,3 +334,25 @@ uvx --python 3.12 --from checkov==3.4.3 checkov
 ```
 
 `scripts/check.cmd` and the `Checkov` GitHub workflow run the same scan.
+
+### Continuous integration
+
+Each pull request runs separate GitHub Actions workflows. Draft pull requests are
+skipped until marked ready for review, and a newer push cancels the outdated run of
+the same workflow. Nothing runs on pushes to branches, so a pull request is checked
+once per update.
+
+| Workflow | Check name | Runs | Purpose |
+| --- | --- | --- | --- |
+| `lint.yml` | Ruff | every PR | Ruff lint and formatting |
+| `typecheck.yml` | Mypy | every PR | Strict mypy for `src` and `tests/unit` |
+| `tests.yml` | Unit tests | every PR | Non-browser tests with at least 80% coverage |
+| `e2e.yml` | E2E tests | every PR | Playwright scenarios; traces uploaded on failure |
+| `checkov.yml` | Checkov | every PR | Dockerfile, workflow and secret checks |
+| `docker.yml` | Docker build | PRs changing the image | Builds the demo image and waits for its healthcheck |
+
+Require Ruff, Mypy, Unit tests, E2E tests and Checkov in the `main` branch ruleset.
+Keep Docker build optional: path-filtered workflows do not run on unrelated pull
+requests, and a required check that never runs blocks merging. `tests.yml` can also
+be called by other workflows (`workflow_call`), and every workflow can be started
+manually (`workflow_dispatch`).
