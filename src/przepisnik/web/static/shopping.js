@@ -12,6 +12,7 @@ function shoppingBusyState(busy) {
   shoppingBusy = busy;
   $("#shopping").querySelectorAll("input, button:not(#close-shopping)").forEach(control => { control.disabled = busy; });
   $("#clear-shopping").disabled = busy || shoppingState.items.length === 0;
+  $("#export-shopping").disabled = busy || shoppingState.items.length === 0;
 }
 async function loadShopping() {
   const result = await request("/api/shopping-list");
@@ -24,8 +25,8 @@ async function openShopping() {
   try { await loadShopping(); shoppingMessage(); }
   catch (failure) { shoppingMessage(failure.message, true); }
 }
-async function updateShopping(change) {
-  if (shoppingBusy) return false;
+async function saveShopping(change) {
+  if (shoppingBusy) throw new Error("Trwa zapisywanie listy zakupów. Spróbuj ponownie za chwilę.");
   shoppingBusyState(true); shoppingMessage("Zapisywanie…");
   try {
     const proposed = JSON.parse(JSON.stringify(shoppingState));
@@ -39,10 +40,12 @@ async function updateShopping(change) {
       throw new Error(result.error || "Nie udało się zapisać listy zakupów.");
     }
     shoppingState = result; renderShopping(); shoppingMessage("Lista zapisana.");
-    return true;
   } catch (failure) {
-    renderShopping(); shoppingMessage(failure.message, true); return false;
+    renderShopping(); shoppingMessage(failure.message, true); throw failure;
   } finally { shoppingBusyState(false); }
+}
+async function updateShopping(change) {
+  try { await saveShopping(change); return true; } catch { return false; }
 }
 function shoppingField(parent, id, title, value, type = "text") {
   const box = element("div", "shopping-field");
@@ -107,46 +110,62 @@ function normalizedQuantity(amount, unit) {
   return { amount, unit: clean === "szt" ? "szt." : clean };
 }
 async function addRecipeToShopping(recipe, kind, servings) {
-  try {
-    await loadShopping();
-    const factor = servings / recipe.variants[kind].servings;
-    const success = await updateShopping(doc => {
-      for (const ingredient of recipe.variants[kind].ingredients) {
-        const metric = ingredient.metric_amount != null;
-        const base = metric ? ingredient.metric_amount : ingredient.amount;
-        const scaled = base == null ? null : base * factor;
-        const quantity = normalizedQuantity(scaled, (metric ? ingredient.metric_unit : ingredient.unit) || "");
-        if (quantity.amount != null && !Number.isFinite(quantity.amount)) throw new Error("Nie można przeliczyć ilości tego składnika.");
-        const existing = doc.items.find(item => {
-          const current = normalizedQuantity(item.amount, item.unit);
-          return item.name.trim().toLocaleLowerCase("pl-PL") === ingredient.name.trim().toLocaleLowerCase("pl-PL")
-            && current.unit === quantity.unit && (current.amount == null) === (quantity.amount == null);
-        });
-        if (existing) {
-          const current = normalizedQuantity(existing.amount, existing.unit);
-          const total = quantity.amount == null ? null : current.amount + quantity.amount;
-          if (total != null && !Number.isFinite(total)) throw new Error("Łączna ilość produktu jest zbyt duża.");
-          existing.amount = total == null ? null : Number(total.toPrecision(12)); existing.unit = quantity.unit; existing.checked = false;
-        } else {
-          doc.items.push({ id: shoppingId(), name: ingredient.name, amount: quantity.amount == null ? null : Number(quantity.amount.toPrecision(12)), unit: quantity.unit, checked: false,
-            source: `${recipe.title}${base == null && ingredient.raw ? ` · ${ingredient.raw}` : ""}`.slice(0, 300) });
-        }
+  await loadShopping();
+  const factor = servings / recipe.variants[kind].servings;
+  await saveShopping(doc => {
+    for (const ingredient of recipe.variants[kind].ingredients) {
+      const metric = ingredient.metric_amount != null;
+      const base = metric ? ingredient.metric_amount : ingredient.amount;
+      const scaled = base == null ? null : base * factor;
+      const quantity = normalizedQuantity(scaled, (metric ? ingredient.metric_unit : ingredient.unit) || "");
+      if (quantity.amount != null && !Number.isFinite(quantity.amount)) throw new Error("Nie można przeliczyć ilości tego składnika.");
+      const existing = doc.items.find(item => {
+        const current = normalizedQuantity(item.amount, item.unit);
+        return item.name.trim().toLocaleLowerCase("pl-PL") === ingredient.name.trim().toLocaleLowerCase("pl-PL")
+          && current.unit === quantity.unit && (current.amount == null) === (quantity.amount == null);
+      });
+      if (existing) {
+        const current = normalizedQuantity(existing.amount, existing.unit);
+        const total = quantity.amount == null ? null : current.amount + quantity.amount;
+        if (total != null && !Number.isFinite(total)) throw new Error("Łączna ilość produktu jest zbyt duża.");
+        existing.amount = total == null ? null : Number(total.toPrecision(12)); existing.unit = quantity.unit; existing.checked = false;
+      } else {
+        doc.items.push({ id: shoppingId(), name: ingredient.name, amount: quantity.amount == null ? null : Number(quantity.amount.toPrecision(12)), unit: quantity.unit, checked: false,
+          source: `${recipe.title}${base == null && ingredient.raw ? ` · ${ingredient.raw}` : ""}`.slice(0, 300) });
       }
-    });
-    if (success) { $("#detail").close(); if (!$("#shopping").open) $("#shopping").showModal(); shoppingMessage("Dodano składniki dla wybranej liczby porcji."); }
-    else { if (!$("#shopping").open) $("#shopping").showModal(); }
-  } catch (failure) {
-    if (!$("#shopping").open) $("#shopping").showModal(); shoppingMessage(failure.message, true);
+    }
+  });
+  shoppingMessage("Dodano składniki dla wybranej liczby porcji.");
+}
+function exportShopping() {
+  const pending = shoppingState.items.filter(item => !item.checked);
+  const sheet = $("#shopping-print"); sheet.replaceChildren();
+  const date = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long" }).format(new Date());
+  sheet.append(element("h1", "", "Lista zakupów"), element("p", "shopping-print-date", date));
+  if (!pending.length) sheet.append(element("p", "", "Wszystkie produkty są już oznaczone jako posiadane."));
+  else {
+    const list = element("ul");
+    for (const item of pending) {
+      const entry = element("li");
+      const unit = item.unit || "";
+      const quantity = item.amount == null ? unit : `${new Intl.NumberFormat("pl-PL", { maximumFractionDigits: 3 }).format(item.amount)} ${unit}`.trim();
+      entry.append(element("span", "shopping-print-box"), element("strong", "", item.name));
+      if (quantity) entry.append(element("span", "shopping-print-quantity", ` — ${quantity}`));
+      if (item.source) entry.append(element("small", "", item.source));
+      list.append(entry);
+    }
+    sheet.append(list);
   }
+  window.print();
 }
 $("#open-shopping").addEventListener("click", openShopping);
 $("#close-shopping").addEventListener("click", () => $("#shopping").close());
-$("#refresh-shopping").addEventListener("click", openShopping);
 $("#clear-shopping").addEventListener("click", async () => {
   if (!shoppingState.items.length || shoppingBusy) return;
   if (!window.confirm("Usunąć wszystkie produkty z listy zakupów, również oznaczone jako posiadane?")) return;
   if (await updateShopping(doc => { doc.items = []; })) shoppingMessage("Lista zakupów wyczyszczona.");
 });
+$("#export-shopping").addEventListener("click", exportShopping);
 $("#shopping-add").addEventListener("submit", async event => {
   event.preventDefault();
   const name = $("#shopping-name").value.trim();

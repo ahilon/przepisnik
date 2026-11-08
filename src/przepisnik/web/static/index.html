@@ -46,6 +46,7 @@
         <button data-meal="lunch" aria-pressed="false">Obiady</button>
         <button data-meal="dinner" aria-pressed="false">Kolacje</button>
         <button data-meal="snack" aria-pressed="false">Przekąski</button>
+        <button data-dish-tab="soup" aria-pressed="false">Zupy</button>
       </nav>
       <div class="results-heading"><h2 id="collection-title">Wszystkie przepisy</h2><span id="result-count" aria-live="polite">Wczytywanie…</span></div>
       <p id="error" class="error" role="alert" hidden></p>
@@ -64,8 +65,7 @@
       <p class="shopping-description">Dodaj składniki z przepisu lub własne produkty. Zaznacz to, co już masz.</p>
       <p id="shopping-status" class="shopping-status" role="status"></p>
       <p id="shopping-error" class="error" role="alert" hidden></p>
-      <button id="refresh-shopping" class="secondary" type="button">Odśwież listę</button>
-      <button id="clear-shopping" class="secondary" type="button" disabled>Wyczyść listę</button>
+      <div class="shopping-toolbar"><button id="clear-shopping" class="danger-link" type="button" disabled>Wyczyść listę</button><button id="export-shopping" class="secondary" type="button" disabled title="Otwiera okno drukowania — wybierz „Zapisz jako PDF”">Eksportuj do PDF</button></div>
       <div id="shopping-items"></div>
       <form id="shopping-add" class="shopping-add">
         <h3>Dodaj własny produkt</h3>
@@ -76,5 +76,6 @@
       </form>
     </div>
   </dialog>
+  <section id="shopping-print" class="shopping-print" aria-hidden="true"></section>
 </body>
 </html>

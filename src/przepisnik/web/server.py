@@ -151,7 +151,10 @@ class RecipeHandler(BaseHTTPRequestHandler):
             self._write_payload(payload)
         except ShoppingConflictError:
             self._json(
-                {"error": "Lista zmieniła się na innym urządzeniu. Odśwież ją i spróbuj ponownie."},
+                {
+                    "error": "Lista zmieniła się na innym urządzeniu. "
+                    "Wczytano aktualną wersję — spróbuj ponownie."
+                },
                 HTTPStatus.CONFLICT,
             )
         except (ValueError, KeyError, TypeError):

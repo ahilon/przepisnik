@@ -1,5 +1,6 @@
 """Exercise the shared shopping list and cleaned-up application navigation."""
 
+import re
 from http import HTTPStatus
 from importlib.metadata import version
 
@@ -80,6 +81,11 @@ def test_recipe_adds_scaled_ingredients_and_merges_compatible_units(app_page: Pa
     page.get_by_label("Liczba porcji", exact=True).fill("4")
     page.get_by_label("Liczba porcji", exact=True).press("Tab")
     page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
+    expect(page.locator(".shopping-notice")).to_contain_text("Dodano składniki dla 4 porcji")
+    expect(page.get_by_role("dialog", name="Shopping recipe")).to_be_visible()
+    expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_hidden()
+    expect(page.locator("#shopping-count")).to_have_text("3")
+    page.get_by_role("button", name="Pokaż listę", exact=True).click()
     expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_visible()
     rice = page.locator(".shopping-row").filter(has_text="Shopping rice")
     expect(rice.get_by_label("Ilość", exact=True)).to_have_value("300")
@@ -134,7 +140,9 @@ def test_clear_list_requires_confirmation_and_persists(app_page: Page) -> None:
     _open_list(page)
     clear = page.get_by_role("button", name="Wyczyść listę", exact=True)
     expect(clear).to_be_disabled()
+    expect(page.get_by_role("button", name="Odśwież listę")).to_have_count(0)
     _add_product(page, "Keep", "1", "kg")
+    assert clear.evaluate("el => getComputedStyle(el).color") == "rgb(179, 38, 30)"
     _add_product(page, "Have", "2", "szt.")
     page.get_by_role("checkbox", name="Mam: Have", exact=True).check()
     expect(page.get_by_role("region", name="Mam już")).to_contain_text("Have")
@@ -164,3 +172,42 @@ def test_stale_clear_does_not_remove_another_devices_product(app_page: Page) -> 
     page.get_by_role("button", name="Wyczyść listę", exact=True).click()
     expect(page.locator("#shopping-error")).to_contain_text("innym urządzeniu")
     expect(page.locator(".shopping-row")).to_have_count(2)
+
+
+def test_export_prints_only_products_to_buy(app_page: Page) -> None:
+    """Render a print sheet with unchecked products and open the print dialog."""
+    page = app_page
+    _open_list(page)
+    export = page.get_by_role("button", name="Eksportuj do PDF", exact=True)
+    expect(export).to_be_disabled()
+    _add_product(page, "Print milk", "1.5", "l")
+    _add_product(page, "Print owned", "1", "szt.")
+    page.get_by_role("checkbox", name="Mam: Print owned", exact=True).check()
+    expect(page.get_by_role("region", name="Mam już")).to_contain_text("Print owned")
+    page.evaluate("() => { window.__printed = 0; window.print = () => window.__printed++; }")
+    export.click()
+    assert page.evaluate("window.__printed") == 1
+    sheet = page.locator("#shopping-print")
+    expect(sheet.locator("li")).to_have_count(1)
+    expect(sheet).to_contain_text("Print milk — 1,5 l")
+    page.emulate_media(media="print")
+    expect(sheet).to_be_visible()
+    expect(page.locator(".layout")).to_be_hidden()
+    expect(page.locator("#shopping")).to_be_hidden()
+
+
+def test_soup_tab_filters_by_dish_type(app_page: Page) -> None:
+    """Use the soup shortcut tab as a dish filter separate from meal times."""
+    page = app_page
+    soups = page.get_by_role("button", name="Zupy", exact=True)
+    soups.click()
+    expect(soups).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#dish")).to_have_value("soup")
+    expect(page).to_have_url(re.compile(r"dish=soup"))
+    page.get_by_role("button", name="Obiady", exact=True).click()
+    expect(soups).to_have_attribute("aria-pressed", "false")
+    expect(page.locator("#dish")).to_have_value("soup")
+    page.get_by_role("button", name="Wszystko", exact=True).click()
+    expect(page.locator("#dish")).to_have_value("")
+    page.locator("#dish").select_option("soup")
+    expect(soups).to_have_attribute("aria-pressed", "true")
