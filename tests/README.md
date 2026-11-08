@@ -63,6 +63,26 @@ uv run pytest tests/e2e/test_recipe_list.py --headed
 uv run pytest tests/e2e --tracing retain-on-failure
 ```
 
+## Unit tests and coverage
+
+Unit tests in `tests/unit` need no browser or server. They build domain objects
+with the helpers in `tests/unit/factories.py`, use temporary SQLite databases and
+generate small PDF files with PyMuPDF.
+
+```powershell
+# Unit tests only
+uv run pytest tests/unit
+
+# Coverage of unit and other non-browser tests
+uv run pytest tests --ignore=tests/e2e --cov
+
+# Coverage of the whole suite, including browser tests, with an HTML report
+uv run pytest tests --cov --cov-report=html
+```
+
+Coverage settings (source package, branch coverage, report format) are in
+`pyproject.toml` under `[tool.coverage.*]`. The HTML report is written to `htmlcov/`.
+
 The test fixtures start and stop the application automatically. Traces are saved under
 `test-results/` and can be opened with:
 

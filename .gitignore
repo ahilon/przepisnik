@@ -28,3 +28,9 @@ data/
 
 # Per-instance network settings
 /przepisnik.toml
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

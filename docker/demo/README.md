@@ -41,7 +41,7 @@ docker compose -f docker/docker-compose.yaml down --volumes
 docker compose -f docker/docker-compose.yaml up --build -d --wait
 ```
 
-The healthcheck reads the recipe API; Compose waits for readiness instead of sleeping
+The image's `HEALTHCHECK` reads the recipe API; Compose waits for readiness instead of sleeping
 for a fixed interval. An occupied host port 8001 fails startup. Stop the conflicting
 process; if changing the port, also update the browser origins in `server.toml`.
 

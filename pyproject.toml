@@ -1,6 +1,6 @@
 [project]
 name = "przepisnik"
-version = "1.10.0"
+version = "1.10.1"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
 authors = [
@@ -25,6 +25,7 @@ dev = [
     "mypy>=2.4.0",
     "playwright>=1.64.1",
     "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
     "pytest-playwright>=0.10.0",
     "ruff>=0.17.2",
 ]
@@ -44,7 +45,8 @@ ignore = ["D105", "D107"]
 [tool.ruff.lint.per-file-ignores]
 "src/przepisnik/cli.py" = ["T20"]
 # Pytest assertions express test expectations, not application security checks.
-"tests/**/*.py" = ["S101"]
+# Expected values are literal test data; Respo sources use en dashes as separators.
+"tests/**/*.py" = ["S101", "PLR2004", "RUF001"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -61,7 +63,21 @@ plugins = ["pydantic.mypy"]
 module = ["przepisnik.adapters.pdf"]
 disallow_untyped_calls = false
 
+[[tool.mypy.overrides]]
+# Unit tests build PDF fixtures with PyMuPDF directly.
+module = ["factories", "test_pdf_adapter"]
+disallow_untyped_calls = false
+
 [tool.pytest.ini_options]
 markers = [
     "sanity: simple verification if aplication works"
 ]
+
+[tool.coverage.run]
+source = ["przepisnik"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:"]
