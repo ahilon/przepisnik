@@ -1,21 +1,29 @@
 name: Lint
 
 on:
-  push:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# A newer push to the same pull request cancels the outdated run.
+concurrency:
+  group: lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
+  ruff:
     name: Ruff
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
 
-      - run: uv sync
-      - run: uv run ruff check .
+      - run: uv sync --locked
+      - run: uv run ruff check --output-format=github .
       - run: uv run ruff format --check .

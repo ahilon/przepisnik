@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.10.2] - Unreleased
+
+- Check every ready pull request with separate GitHub Actions workflows: Ruff, mypy,
+  unit tests with an 80% coverage threshold, Playwright E2E tests, Checkov and, for
+  image changes, a Docker build with a healthcheck.
+- Run workflows only for pull requests, skip drafts and cancel outdated runs.
+- Document the workflows and the checks to require for merging into `main`.
+
 ## [1.10.1] - Unreleased
 
 - Add unit tests for the domain model, merging, import, storage, migrations, Respo
