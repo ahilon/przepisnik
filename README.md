@@ -7,67 +7,119 @@ The CLI, project skills and local recipe browser share the same application oper
 This project is developed with AI assistance, including Codex and Claude Code,
 for planning, implementation and documentation.
 
-## Version status
+## Getting started as a developer
 
-The current work targets **1.7.0**: shopping list clearing, fractional servings and hidden recipes.
-Version **1.4.0** introduced configurable server addresses and allowed
-origins for home-network access, with instance setup documentation.
-Version **1.3.0** introduced a local recipe browser with photo cards, search,
-filters, pagination and recipe details with variant switching.
-Version **1.2.0** introduced validation and import safeguards; **1.1.0** introduced
-SQLite and recipe management. See [CHANGELOG.md](CHANGELOG.md) for the short history.
-Version 1.7.0 is not released; package metadata declares 1.7.0.
-Package versions are independent of recipe document and SQLite schema versions.
+For the developer toolchain and AI-assisted PR workflow, see the
+[Developer guide](DEVELOPING.md).
 
-SQLite schema upgrades run automatically when opening a database for writing,
-including server startup. Existing databases get a `.before-vN.bak` SQLite backup
-before an upgrade. All pending steps run in one transaction; a failure rolls back
-both schema changes and the version. Read-only commands require an up-to-date
-schema; start the server once to upgrade an older database. Newer unsupported
-versions are rejected. For future upgrades, append SQL statement tuples to
-`core/schema.py` without changing released migrations.
+### Prerequisites
 
-The recipe editor accepts hours and minutes separately, stored as total minutes.
-Each ingredient has its own name, quantity and unit fields; units can be selected
-or typed freely. Preparation steps have separate text fields and can be reordered
-using the drag handle or the up/down buttons. Numbering follows the saved order.
+- [Git](https://git-scm.com/downloads)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) - manages Python,
+  the virtual environment and dependencies. A separate Python installation is not
+  needed: uv downloads the version from `.python-version` (3.12) when it is missing.
 
-
-## Setup
-
-For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
-
-For an isolated Docker environment with six sample recipes, see the
-[Docker demo instructions](docker/demo/README.md).
-
-```bash
-uv sync
+```powershell
+# Windows
+winget install --id=astral-sh.uv -e
 ```
 
-The project uses uv and `uv.lock` for environments and reproducible dependencies.
-SQLite is provided by Python's standard library; no database service is required.
-
-### Browser tests
-
-Install Chromium once after syncing development dependencies:
-
 ```bash
-uv run playwright install chromium
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Start the application with `uv run przepisnik serve`. In a second terminal,
-record a pytest test (create the `tests` directory first if needed):
+### Get the code
 
 ```bash
-uv run playwright codegen --target python-pytest -o tests/test_sanity.py http://localhost:8000
+git clone https://github.com/ahilon/przepisnik.git
+cd przepisnik
 ```
 
-Use the recorder's assertion tools to check expected page content, then close
-the recorder and run the saved test while the application is still running:
+To work on or review an existing pull request, fetch its branch by number:
 
 ```bash
-uv run pytest tests/test_sanity.py --headed
+git fetch origin pull/<number>/head:pr-<number>
+git switch pr-<number>
 ```
+
+With the [GitHub CLI](https://cli.github.com/) installed, `gh pr checkout <number>`
+does the same.
+
+### Install dependencies
+
+```bash
+uv sync --locked
+```
+
+This creates `.venv/` with the application and the `dev` dependency group (pytest,
+Playwright, Ruff, mypy). `--locked` installs exactly the versions in `uv.lock`, as CI
+does, and fails if `pyproject.toml` and the lock file disagree. Run it again after
+pulling changes or switching branches. Prefix commands with `uv run`; activating the
+virtual environment is not necessary. SQLite comes with Python's standard library;
+no database service is required.
+
+### Run the application
+
+```bash
+uv run przepisnik serve
+```
+
+Open **http://localhost:8000**. Data is stored in `./data` (ignored by Git) and starts
+empty. To work with the six sample recipes used by the tests and the Docker demo,
+seed a fresh `data/` directory once:
+
+```powershell
+# Windows
+New-Item -ItemType Directory -Force data | Out-Null
+Copy-Item -Recurse docker\demo\recipes data\recipes
+Copy-Item docker\demo\placeholder.png data\empty_dish.png
+uv run przepisnik migrate-json
+```
+
+```bash
+# macOS / Linux
+mkdir -p data && cp -R docker/demo/recipes data/recipes
+cp docker/demo/placeholder.png data/empty_dish.png
+uv run przepisnik migrate-json
+```
+
+### Run checks and tests
+
+```powershell
+./scripts/check.cmd                       # Ruff, formatting, mypy, Checkov (Windows)
+uv run pytest tests --ignore=tests/e2e    # unit tests, no browser needed
+```
+
+Browser (E2E) tests use Playwright. Install Chromium once per machine, and again
+after a Playwright upgrade in `uv.lock`:
+
+```bash
+uv run playwright install chromium        # Linux: add --with-deps for system libraries
+uv run pytest tests/e2e                   # starts its own server on temporary data
+uv run pytest tests/e2e --headed          # watch the browser
+```
+
+The tests do not use `data/` or a running server. See [tests/README.md](tests/README.md)
+for recording new tests, sanity tests, coverage and traces, and
+[Development](#development) for the individual checks and CI.
+
+### Before opening a pull request
+
+- Run `./scripts/check.cmd` and the tests; CI runs the same checks on every ready PR.
+- Add a short entry to [CHANGELOG.md](CHANGELOG.md), which records version history.
+
+### Git identity
+
+Set the author for this repository, especially when the computer is also used
+with other GitHub accounts:
+
+```bash
+git config user.name "<name>"
+git config user.email "<email used by the GitHub account>"
+```
+
+### Claude Code and Codex skills
 
 Project skills live in `.agents/skills/` (read by Codex). Link them for
 Claude Code once per clone:
@@ -87,6 +139,25 @@ ln -s ../../.agents/skills/przepisnik-manage .claude/skills/przepisnik-manage
 Invoke `$przepisnik` for imports or `$przepisnik-manage` for existing recipes in
 Codex (`/przepisnik` and `/przepisnik-manage` in Claude Code). Skills invoke the CLI;
 they do not generate scripts or directly write database files for routine operations.
+
+## Instance setup
+
+For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
+For an isolated Docker environment with six sample recipes, see the
+[Docker demo instructions](docker/demo/README.md).
+
+## Database upgrades
+
+SQLite schema upgrades run automatically when opening a database for writing,
+including server startup. Existing databases get a `.before-vN.bak` SQLite backup
+before an upgrade. All pending steps run in one transaction; a failure rolls back
+both schema changes and the version. Read-only commands require an up-to-date
+schema; start the server once to upgrade an older database. Newer unsupported
+versions are rejected. For future upgrades, append SQL statement tuples to
+`core/schema.py` without changing released migrations.
+
+Package versions (see [CHANGELOG.md](CHANGELOG.md)) are independent of recipe
+document and SQLite schema versions.
 
 ## Migrate existing JSON
 
@@ -110,7 +181,7 @@ not create a backup archive.
 
 ## Usage
 
-### Local recipe browser (1.3.0)
+### Local recipe browser
 
 ```bash
 uv run przepisnik serve
@@ -127,6 +198,10 @@ switch variants without modifying stored data. Filters are preserved in the URL.
 The layout adapts to smaller screens. Use **Dodaj przepis** to create a recipe,
 or **Edytuj przepis** in its details to edit ingredients, preparation, nutrition,
 categories, tags, favorites and notes. Existing variants and source metadata are retained.
+The recipe editor accepts hours and minutes separately, stored as total minutes.
+Each ingredient has its own name, quantity and unit fields; units can be selected
+or typed freely. Preparation steps have separate text fields and can be reordered
+using the drag handle or the up/down buttons. Numbering follows the saved order.
 Photos support PNG, JPEG, WebP and GIF up to 8 MB, with a preview before saving.
 Recipes without a photo display `data/empty_dish.png`. Editing without selecting
 a new photo keeps the existing photo. Conflicting edits from another tab are rejected;
