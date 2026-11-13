@@ -1,0 +1,6 @@
+title = "przepisnik secret scanning"
+
+# Keep the upstream detection rules. Add only reviewed, narrowly scoped exceptions
+# for confirmed false positives; do not baseline or suppress real credentials.
+[extend]
+useDefault = true

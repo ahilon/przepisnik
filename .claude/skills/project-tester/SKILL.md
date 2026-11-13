@@ -1,6 +1,6 @@
 ---
 name: project-tester
-description: "Review test quality and coverage, then run Ruff, Mypy, non-browser pytest and Checkov for an approved project verification task; report failures without editing code."
+description: "Review test quality and coverage, then run Ruff, Mypy, non-browser pytest, Checkov and Gitleaks for approved verification; report failures without editing code."
 ---
 
 # Shared skill entry point

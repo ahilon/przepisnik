@@ -55,6 +55,7 @@ Local browser E2E are outside this skill's default execution scope. Inspect thei
 Only execute the operations authorized by the user:
 
 - Review and stage only agreed files. Use `<type>(<optional-scope>): <summary>` for the commit and PR title; mark breaking changes with `!` or `BREAKING CHANGE:`. Do not add local artifacts, personal recipe data or credentials.
+- Before commit, scan the final staged diff with `gitleaks git --pre-commit --staged --config .gitleaks.toml --redact=100 --no-banner .`, using the version pinned in CI. A prior clean history scan does not cover newly staged content. Stop on findings or an incomplete scan; report only redacted locations, never raw secrets.
 - Push the task branch with its upstream. Before creating a PR, check for an existing open PR for the same head/base. For an existing PR, reuse it rather than create another; update its title/body only within the authorized scope.
 - Write a UTF-8 PR body file under ignored `local-artifacts/` (or the system temporary directory), preserving real newlines. Pass the body through `--body-file`, never shell-interpolate multiline content.
 
