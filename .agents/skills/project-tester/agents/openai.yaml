@@ -1,0 +1,3 @@
+interface:
+  display_name: "Project Tester"
+  short_description: "Review test coverage and run project quality checks"

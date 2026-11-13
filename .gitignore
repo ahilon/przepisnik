@@ -16,10 +16,8 @@ przepisy/
 referencja/
 data/
 
-# Claude Code skill link (junction/symlink to .agents/skills, recreated per machine - see README)
-.claude/skills/przepisnik
-.claude/skills/przepisnik-manage
-.claude/skills/project-github
+# Claude skill entry points are tracked; machine-local settings are not.
+.claude/settings.local.json
 
 # Temporary files written by the store
 *.tmp

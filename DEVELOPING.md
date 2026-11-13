@@ -81,14 +81,38 @@ implemented in the repository:
 
 | Skill | Use |
 | --- | --- |
+| `project-lead` | Discuss architecture and coordinate approved phases without direct edits in the lead role |
 | `project-github` | Verify finished work, prepare version/changelog and publish an authorized PR through Git/gh |
+| `project-developer` | Implement agreed changes or author tests in separately authorized modes, without executing checks |
+| `project-tester` | Review test quality/coverage and run Ruff, Mypy, non-browser pytest and Checkov |
 | `przepisnik` | Import recipes using the application CLI |
 | `przepisnik-manage` | Browse/manage existing recipes using the application CLI |
 
-The architect, developer and orchestrator skills are not installed yet. Their
-planned workflow is sequential: agree on behavior, implement approved changes,
-author approved tests, then verify/package through `project-github`. Do not treat
-this roadmap as an existing autonomous agent system.
+`project-lead` combines architecture and orchestration. Both clients use the same
+sequential procedures and approval state, normally in one session. Separate agents
+are optional and require explicit authorization and host support. This setup does
+not change sandbox permissions or guarantee filesystem isolation for the lead.
+
+### Start with the lead
+
+In Codex, use `$project-lead`; in Claude Code, use `/project-lead`:
+
+```text
+Use project-lead to discuss the Docker release pipeline. Summarize a concrete
+plan and wait for my approval before implementation.
+```
+
+The lead presents the plan in conversation and does not edit files while planning.
+After plan approval, it hands off to GitHub prepare mode, then developer implement
+mode. It returns the implementation for discussion and waits until you declare
+the behavior ready for tests. Your request to add and verify tests covers developer
+test authoring followed by the tester; narrower requests such as “author only”
+remain narrower. After verification it summarizes readiness and asks before PR
+publication. Actual merge of a specified PR needs separate explicit approval.
+
+The lead maintains goal, decisions, scope and phase approvals in conversation.
+It loads the next canonical skill transparently; loading a skill is not proof that
+an independent agent process was spawned.
 
 ### Codex
 
@@ -114,41 +138,113 @@ approval covers the agreed phase; the agent should not ask for every command.
 New scope, merge and deployment are separate decisions. Host permission prompts
 still apply.
 
+### Developer: implementation and test authoring
+
+Use `project-developer` in one mode at a time. An explicit request covering a
+concrete implementation is approval to make those changes; no additional approval
+document or per-file confirmation is required.
+
+```text
+Use $project-developer in implement mode to add the agreed recipe filter.
+Keep the current scope; do not write or run tests yet.
+```
+
+Once the behavior is settled, authorize test authoring:
+
+```text
+Use $project-developer in tests mode to add regression tests for the agreed
+filter behavior. Author the tests without executing them.
+```
+
+You may authorize both phases in one concrete request. Otherwise moving from
+implementation to test authoring requires approval; execution belongs to
+`project-tester` and publication to `project-github`. The developer reads relevant tests but does not run tests,
+linters, builds, application smoke checks or dependency synchronization in either
+mode. An explicitly authorized exception can cover a necessary command. Existing
+approval continues to cover repairs within the accepted implementation scope.
+
+The handoff states which files changed, what behavior was implemented, what test
+scenarios were authored/proposed and what remains unverified. Test authoring alone
+must never be reported as a passing test run. Neither developer mode bumps the
+release version or creates commits/PRs.
+
+Developer conventions are maintained in
+[Python style](.agents/skills/project-developer/references/python-style.md): standard
+library first, approval for new direct dependencies, cohesive classes, descriptive
+names, focused private helpers, shallow branching, simple comprehensions, explicit
+`return None`, scoped constants, type annotations and Google-style docstrings.
+Existing direct dependencies may be used in their declared context; merely being
+transitive in `uv.lock` is insufficient. Properties represent object state or
+derived attributes, not an alternative to all function arguments.
+
+### Tester: review and verification
+
+```text
+Use $project-tester to review tests for the agreed change and run the default
+quality suite. Report coverage and missing scenarios; do not modify files.
+```
+
+The tester checks meaningful assertions and gaps, then runs Ruff lint/format
+checks, Mypy, non-browser pytest with the existing coverage threshold, and Checkov.
+Generated coverage/cache/temp files are expected; application/test edits are not.
+On failure it reports the cause and unexecuted checks, leaving repairs to the
+developer. E2E and Docker builds require explicit additional scope.
+
+The GitHub publication phase includes the tester procedure after finalizing
+version/changelog and syncing the environment. Valid evidence for the identical
+candidate may be reused; metadata or source changes can invalidate earlier runs.
+Changing skill does not itself justify running the same checks twice.
+
 ### Claude Code
 
-Expose the same skill using the repository's existing per-skill link convention.
-Create a link only if that path does not already exist; inspect an existing path
-instead of replacing it.
+`CLAUDE.md` imports the shared `AGENTS.md`. Tracked entry points in
+`.claude/skills/<name>/SKILL.md` tell Claude to read the corresponding canonical
+`.agents/skills/<name>/SKILL.md`. These are small adapters, not duplicated role
+implementations, and work without symlinks/junctions after checkout.
 
-```powershell
-# Windows: one-time setup per clone, from the repository root
-New-Item -ItemType Directory -Force .claude/skills | Out-Null
-New-Item -ItemType Junction -Path .claude/skills/project-github -Target "$PWD/.agents/skills/project-github"
-```
+Invoke `/project-lead`, `/project-developer`, `/project-tester` or `/project-github`.
+Recipe entry points are `/przepisnik` and `/przepisnik-manage`. Reload the client if
+a newly added skill is not listed. Codex uses the matching `$name` invocations.
 
-```bash
-# macOS / Linux: one-time setup per clone
-mkdir -p .claude/skills
-ln -s ../../.agents/skills/project-github .claude/skills/project-github
-```
+Older clones may have ignored junctions/symlinks at these paths. Inspect and migrate
+only those links before checking out the tracked adapter files; never recursively
+delete their canonical targets. Do not overwrite an existing real skill directory.
 
-Invoke `/project-github` with the same concrete scope and approval boundaries.
-The machine-local link is ignored by Git. Recipe-skill links are documented in
-[README.md](README.md#claude-code-and-codex-skills).
+The portable implementation does not configure native Claude/Codex agent processes,
+models or permissions. An unavailable native skill call can be replaced by reading
+and following its canonical file in the same session, with the same phase limits.
+
+References: [OpenAI skills](https://learn.chatgpt.com/docs/build-skills),
+[Claude skills](https://code.claude.com/docs/en/skills),
+[shared instruction imports](https://code.claude.com/docs/en/memory#share-one-file-with-other-coding-tools).
+
+### Git preparation and merge
+
+Plan approval authorizes `project-github` prepare mode before implementation.
+It checks branch/PR state, snapshots dirty work with a named stash when needed,
+fetches/prunes, fast-forwards the verified base and creates/reuses the appropriate
+task branch. It restores the recorded stash and stops on conflicts/divergence.
+Ignored personal data is not stashed. Remote deletion alone is not proof of merge.
+See [Git preparation](.agents/skills/project-github/references/git-preparation.md).
+
+Prepare mode does not bump versions, run tests, commit or publish. Publish mode
+rechecks freshness before finalizing metadata and verification. Merge mode requires
+explicit approval of a specific PR and current remote protection/check evidence;
+see [merge procedure](.agents/skills/project-github/references/merge.md).
 
 ## What the GitHub skill does
 
 1. Inspects the intended diff, base, repository, identity and existing branch/PR.
 2. Creates/reuses a task branch such as `skill/github-pr-workflow`.
 3. Updates `pyproject.toml`, a short changelog entry and the environment/lockfile.
-4. Runs Ruff lint/format checks, Mypy, non-browser pytest with the CI coverage
-   threshold, and Checkov. A failure stops publication; the skill does not silently
+4. Uses the tester procedure for Ruff, Mypy, non-browser pytest with coverage,
+   and Checkov. A failure stops publication; the skill does not silently
    rewrite application code/tests or weaken checks.
 5. Commits only the agreed files, pushes the branch and creates/reuses a PR with
    `gh`. Reports the PR URL, version, SHA and local/remote verification status.
 
 The exact verification commands live in the
-[skill](.agents/skills/project-github/SKILL.md); committed workflows and tool
+[tester skill](.agents/skills/project-tester/SKILL.md); committed workflows and tool
 configuration take precedence when commands change. `scripts/check.cmd` is a
 convenience command, not the whole PR verification suite.
 
@@ -177,8 +273,9 @@ distinguish documentation-only metadata bumps from runtime changes.
 
 ## Worktree and data boundaries
 
-Keep unrelated work out of the PR. Never use a blanket stage/reset/stash to solve
-a dirty worktree. If unrelated edits affect validation, isolate the intended
+Keep unrelated work out of the PR. Never use a blanket stage/reset to solve
+a dirty worktree. Only the authorized Git preparation procedure may stash and
+restore its recorded snapshot. If unrelated edits affect validation, isolate the intended
 candidate and ensure the evidence applies to its actual content before claiming
 success.
 
@@ -186,5 +283,5 @@ Do not commit `local-artifacts/`, real recipe data, personal diet plans or
 credentials. Tests use disposable fixtures. Repository skills must not perform
 routine direct database edits; use the existing recipe skills/CLI instead.
 
-Merge, auto-merge, GitHub releases, stable-tag promotion and production deployment
-are outside the GitHub skill's default publication scope.
+Auto-merge, GitHub releases, stable-tag promotion and production deployment remain
+outside default publication scope. Actual merge has its own explicitly authorized mode.

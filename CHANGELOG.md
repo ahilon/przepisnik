@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.10.4] - Unreleased
+
+- Share the lead, developer, tester and GitHub workflow between Codex and Claude
+  Code, with common approval rules and tracked Claude skill entry points.
+- Document Python implementation conventions, test verification and coverage,
+  safe Git branch synchronization, PR publication and explicitly approved merge.
+- Replace the legacy commit policy with a pointer to the shared workflow and
+  update developer setup instructions without changing client permissions.
+
 ## [1.10.3] - Unreleased
 
 - Add the `project-github` skill for approved versioning, local verification and
