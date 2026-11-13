@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.10.3] - Unreleased
+
+- Add the `project-github` skill for approved versioning, local verification and
+  pull request publication through Git and GitHub CLI.
+- Add a developer guide covering required tools, authentication and AI-assisted
+  contribution, and refresh the README onboarding instructions.
+- Keep local planning artifacts and the Claude GitHub skill link out of Git.
+
 ## [1.10.2] - Unreleased
 
 - Check every ready pull request with separate GitHub Actions workflows: Ruff, mypy,

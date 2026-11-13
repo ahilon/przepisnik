@@ -19,12 +19,14 @@ data/
 # Claude Code skill link (junction/symlink to .agents/skills, recreated per machine - see README)
 .claude/skills/przepisnik
 .claude/skills/przepisnik-manage
+.claude/skills/project-github
 
 # Temporary files written by the store
 *.tmp
 
 # Local implementation checklist
 /PLAN.local.md
+/local-artifacts/
 
 # Per-instance network settings
 /przepisnik.toml
