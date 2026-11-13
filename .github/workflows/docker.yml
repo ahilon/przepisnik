@@ -8,6 +8,7 @@ on:
     paths:
       - src/**
       - docker/**
+      - tests/**
       - pyproject.toml
       - uv.lock
       - .dockerignore
@@ -33,7 +34,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       # Builds the image without publishing it and waits for its HEALTHCHECK.
       - name: Build and start the demo image
@@ -49,5 +50,134 @@ jobs:
         run: docker compose logs --no-color
 
       - name: Stop the demo
+        if: ${{ always() }}
+        run: docker compose down --volumes
+
+  instance:
+    name: Instance container
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      COMPOSE_FILE: docker/docker-compose.instance.yaml
+      COMPOSE_PROJECT_NAME: przepisnik-instance-ci
+      PRZEPISNIK_CONFIG_FILE: ${{ runner.temp }}/instance-server.toml
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Prepare an isolated instance configuration
+        run: |
+          cat > "$PRZEPISNIK_CONFIG_FILE" <<'TOML'
+          host = "0.0.0.0"
+          port = 8000
+          origins = ["http://ci.przepisnik.invalid:8000"]
+          TOML
+
+      - name: Build and start the empty instance
+        run: docker compose up --build --detach --wait --wait-timeout 120
+
+      - name: Select the exact built image for regression tests
+        run: |
+          container_id=$(docker compose ps --quiet app)
+          image_id=$(docker inspect --format '{{.Image}}' "$container_id")
+          echo "CONTAINER_TEST_IMAGE=$image_id" >> "$GITHUB_ENV"
+
+      - name: Reject unsafe startup without changing legacy data
+        run: |
+          set -euo pipefail
+          data_dir=$(mktemp -d "$RUNNER_TEMP/startup-data.XXXXXX")
+          # Disposable test directory, writable by the image's non-root user.
+          chmod 0777 "$data_dir"
+          reject_startup() {
+            expected_message=$1
+            shift
+            if docker run --rm --pull=never "$@" "$CONTAINER_TEST_IMAGE" > "$RUNNER_TEMP/startup.log" 2>&1; then
+              echo 'Startup unexpectedly succeeded'
+              exit 1
+            fi
+            grep -F "$expected_message" "$RUNNER_TEMP/startup.log"
+          }
+          reject_startup 'Server configuration must be a readable file' \
+            --mount "type=bind,source=$data_dir,target=/data" \
+            --env PRZEPISNIK_CONFIG=/missing/server.toml
+          reject_startup 'Data directory must exist and be writable' \
+            --mount "type=bind,source=$data_dir,target=/data,readonly"
+          mkdir -p "$data_dir/recipes/legacy"
+          printf '%s\n' '{"title":"Legacy sentinel"}' > "$data_dir/recipes/legacy/recipe.json"
+          before=$(sha256sum "$data_dir/recipes/legacy/recipe.json")
+          reject_startup 'Legacy data found' --mount "type=bind,source=$data_dir,target=/data"
+          test "$before" = "$(sha256sum "$data_dir/recipes/legacy/recipe.json")"
+          test ! -e "$data_dir/recipes.sqlite3"
+          test ! -e "$data_dir/empty_dish.png"
+
+      - name: Check non-root execution and empty data
+        run: |
+          set -euo pipefail
+          test "$(docker compose exec -T app id -u)" -ne 0
+          docker compose exec -T app test ! -d /app/docker/demo/recipes
+          curl --fail --silent --show-error \
+            --header 'Host: ci.przepisnik.invalid:8000' \
+            http://127.0.0.1:8000/api/recipes \
+            | python3 -c "import json, sys; assert json.load(sys.stdin)['total'] == 0"
+
+      - name: Save a recipe and a photo in the disposable data volume
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --header 'Host: ci.przepisnik.invalid:8000' \
+            --header 'Origin: http://ci.przepisnik.invalid:8000' \
+            --header 'Content-Type: application/json' \
+            --data '{"recipe":{"title":"CI persistence","steps":["Keep this recipe after recreation."],"variants":{"family":{"servings":1,"ingredients":[{"name":"Water","amount":1,"unit":"l"}]}}}}' \
+            http://127.0.0.1:8000/api/recipes
+          docker compose exec -T app /app/.venv/bin/python -c \
+            "import shutil; shutil.copyfile('/data/empty_dish.png', '/data/ci-photo.png')"
+          docker compose ps --quiet app > "$RUNNER_TEMP/instance-before.txt"
+
+      - name: Recreate from the same built image and verify persistence
+        run: |
+          set -euo pipefail
+          docker compose up --force-recreate --no-build --detach --wait --wait-timeout 120
+          test "$(cat "$RUNNER_TEMP/instance-before.txt")" != "$(docker compose ps --quiet app)"
+          curl --fail --silent --show-error \
+            --header 'Host: ci.przepisnik.invalid:8000' \
+            http://127.0.0.1:8000/api/recipes \
+            | python3 -c "import json, sys; assert json.load(sys.stdin)['total'] == 1"
+          docker compose exec -T app /app/.venv/bin/python -c \
+            "from pathlib import Path; assert Path('/data/ci-photo.png').read_bytes() == Path('/data/empty_dish.png').read_bytes()"
+          docker compose exec -T app /app/.venv/bin/przepisnik --data-dir /data check-data
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Install locked browser-test dependencies
+        run: |
+          uv sync --locked
+          uv run --locked playwright install --with-deps chromium
+
+      # Every test mounts its own SQLite/photos and uses the runner's non-root UID.
+      # Explicit image selection fails if Docker fails; there is no host fallback.
+      - name: Run browser E2E against the built instance image
+        run: >-
+          uv run --locked pytest tests/e2e -p no:cacheprovider
+          --container-image "$CONTAINER_TEST_IMAGE"
+          --browser chromium --tracing retain-on-failure --output test-results
+
+      - name: Upload container E2E failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: instance-container-e2e
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Show instance logs
+        if: ${{ failure() }}
+        run: docker compose logs --no-color
+
+      # Only this runner's explicitly named CI project; never an instance volume.
+      - name: Remove the disposable CI instance
         if: ${{ always() }}
         run: docker compose down --volumes

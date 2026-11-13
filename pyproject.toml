@@ -1,6 +1,6 @@
 [project]
 name = "przepisnik"
-version = "1.10.5"
+version = "1.10.6"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
 authors = [
@@ -55,7 +55,7 @@ convention = "google"
 python_version = "3.12"
 strict = true
 warn_unreachable = true
-mypy_path = "src"
+mypy_path = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

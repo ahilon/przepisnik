@@ -139,6 +139,8 @@ they do not generate scripts or directly write database files for routine operat
 For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
 For an isolated Docker environment with six sample recipes, see the
 [Docker demo instructions](docker/demo/README.md).
+For an instance container with persistent data and its own configuration, see
+the [container guide](docker/README.md).
 
 ## Database upgrades
 
@@ -419,7 +421,7 @@ of the same workflow/ref; Secrets keeps push and PR runs separate.
 | `e2e.yml` | E2E tests | every PR | Playwright scenarios; traces uploaded on failure |
 | `checkov.yml` | Checkov | every PR | Dockerfile, workflow and secret checks |
 | `secrets.yml` | Secrets | every push and PR, including drafts | Gitleaks scans fetched Git history with redacted output |
-| `docker.yml` | Docker build | PRs changing the image | Builds the demo image and waits for its healthcheck |
+| `docker.yml` | Docker build / Instance container | PRs changing the image or tests | Checks demo readiness, instance startup/persistence and browser E2E against the image |
 
 Require Ruff, Mypy, Unit tests, E2E tests, Checkov and Secrets in the `main` branch ruleset.
 Keep Docker build optional: path-filtered workflows do not run on unrelated pull
