@@ -1,6 +1,6 @@
 ---
 name: project-tester
-description: Review test quality and coverage, then run Ruff, Mypy, non-browser pytest and Checkov for an approved project verification task; report failures without editing code.
+description: Review test quality and coverage, then run Ruff, Mypy, non-browser pytest, Checkov and Gitleaks for approved verification; report failures without editing code.
 ---
 
 # Project tester
@@ -51,11 +51,27 @@ uv run --locked ruff format --check .
 uv run --locked mypy src tests/unit
 uv run --locked pytest tests --ignore=tests/e2e -p no:cacheprovider --cov --cov-report=term --cov-fail-under=80
 uvx --python 3.12 --from checkov==3.4.3 python -m checkov.main
+gitleaks git --config .gitleaks.toml --redact=100 --no-banner --log-opts="--all" .
 ```
 
 Do not use autoformat/fix modes. `scripts/check.cmd` is not the complete suite:
 it currently omits pytest and uses a smaller Mypy scope. Checkov's configured
 Dockerfile/Actions/secrets checks are not a full image/dependency vulnerability scan.
+
+Use Gitleaks 8.30.1 (an explicit executable path is acceptable), matching CI.
+The approved verification scope includes obtaining the official pinned CLI with
+archive checksum verification if missing; do not add an application dependency.
+History scanning covers fetched refs, not unstaged/untracked changes. Also scan
+the intended candidate: copy relevant tracked and nonignored untracked files to a
+fresh disposable directory, then run `gitleaks dir --config <repo>/.gitleaks.toml
+--redact=100 --no-banner <snapshot>`. Do not include ignored personal data,
+environments or local artifacts in that snapshot. GitHub additionally scans the
+final staged diff before commit. Do not claim current files were scanned based
+only on a clean history result.
+
+Keep reports under ignored local artifacts with full redaction. Findings stop
+publication: report only rule, file/line and remediation, never the credential or
+raw matching line. Do not hide findings in a baseline or broad allowlist.
 
 Stop on a failed required control and report it; do not keep running expensive
 dependent checks after a blocker. State which checks were not reached. Retry only

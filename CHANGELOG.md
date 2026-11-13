@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.10.5] - Unreleased
+
+- Add a pinned, checksum-verified Gitleaks CLI workflow for all pushes and pull
+  requests, including drafts and documentation changes, with redacted output.
+- Include Git history, candidate-file and staged-diff secret scans in the tester
+  and GitHub procedures, and document the required Secrets check and local setup.
+
 ## [1.10.4] - Unreleased
 
 - Share the lead, developer, tester and GitHub workflow between Codex and Claude

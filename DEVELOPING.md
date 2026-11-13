@@ -11,6 +11,7 @@ see [SETUP.md](SETUP.md).
 | Git | Checkout, branches and commits |
 | [uv](https://docs.astral.sh/uv/getting-started/installation/) | Python, locked dependencies and project commands |
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Repository access, pull requests and CI inspection |
+| [Gitleaks](https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1) 8.30.1 | Local secret scanning before publication; CI installs its verified binary |
 | Codex or Claude Code | Optional AI assistance using repository skills |
 | Docker with Compose | Needed when building or testing containers, not for unit tests |
 | Playwright Chromium | Needed for local browser E2E, not for the default GitHub skill checks |
@@ -84,7 +85,7 @@ implemented in the repository:
 | `project-lead` | Discuss architecture and coordinate approved phases without direct edits in the lead role |
 | `project-github` | Verify finished work, prepare version/changelog and publish an authorized PR through Git/gh |
 | `project-developer` | Implement agreed changes or author tests in separately authorized modes, without executing checks |
-| `project-tester` | Review test quality/coverage and run Ruff, Mypy, non-browser pytest and Checkov |
+| `project-tester` | Review test quality/coverage and run Ruff, Mypy, non-browser pytest, Checkov and Gitleaks |
 | `przepisnik` | Import recipes using the application CLI |
 | `przepisnik-manage` | Browse/manage existing recipes using the application CLI |
 
@@ -185,7 +186,8 @@ quality suite. Report coverage and missing scenarios; do not modify files.
 ```
 
 The tester checks meaningful assertions and gaps, then runs Ruff lint/format
-checks, Mypy, non-browser pytest with the existing coverage threshold, and Checkov.
+checks, Mypy, non-browser pytest with the existing coverage threshold, Checkov
+and Gitleaks.
 Generated coverage/cache/temp files are expected; application/test edits are not.
 On failure it reports the cause and unexecuted checks, leaving repairs to the
 developer. E2E and Docker builds require explicit additional scope.
@@ -194,6 +196,46 @@ The GitHub publication phase includes the tester procedure after finalizing
 version/changelog and syncing the environment. Valid evidence for the identical
 candidate may be reused; metadata or source changes can invalidate earlier runs.
 Changing skill does not itself justify running the same checks twice.
+
+### Secret scanning
+
+The `Secrets` workflow runs Gitleaks 8.30.1 on every push and PR, including drafts
+and documentation-only changes. It uses a full-history checkout, upstream default
+rules extended by `.gitleaks.toml`, a pinned CLI archive SHA-256 and redacted output.
+No Gitleaks Action license or extra repository token is required. Add `Secrets`
+to the base-branch required checks after its first successful CI run; adding the
+workflow file alone does not enforce branch protection.
+
+Install the official CLI for your OS from the linked release and verify its
+archive against the release checksums. Add it to PATH or give the agent its full
+executable path. Match the version pinned in `secrets.yml`; Windows x64 archive
+SHA-256 for 8.30.1 is
+`d29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e`.
+
+```text
+gitleaks version
+gitleaks git --config .gitleaks.toml --redact=100 --no-banner --log-opts="--all" .
+```
+
+History scanning does not include unstaged/untracked content. The tester also
+scans a disposable snapshot of the intended candidate's tracked and nonignored
+untracked files using `gitleaks dir --config <repo>/.gitleaks.toml --redact=100
+--no-banner <snapshot>`. Exclude ignored personal data, environments and local
+artifacts by selecting Git-managed candidate files, not by suppressing their
+paths globally in detection rules.
+
+After staging the final candidate, the GitHub role also runs:
+
+```text
+gitleaks git --pre-commit --staged --config .gitleaks.toml --redact=100 --no-banner .
+```
+
+Scan results may identify sensitive files. Keep reports in ignored local artifacts
+with full redaction; do not upload raw findings as CI artifacts or paste secrets
+into chat. A finding stops publication; revoke/rotate real credentials rather
+than adding them to an ignore list. A clean scan covers supported patterns and
+the scanned refs/files, not a complete privacy audit or proof that every IP,
+email, password or binary attachment is safe.
 
 ### Claude Code
 
@@ -238,7 +280,7 @@ see [merge procedure](.agents/skills/project-github/references/merge.md).
 2. Creates/reuses a task branch such as `skill/github-pr-workflow`.
 3. Updates `pyproject.toml`, a short changelog entry and the environment/lockfile.
 4. Uses the tester procedure for Ruff, Mypy, non-browser pytest with coverage,
-   and Checkov. A failure stops publication; the skill does not silently
+   Checkov and Gitleaks. A failure stops publication; the skill does not silently
    rewrite application code/tests or weaken checks.
 5. Commits only the agreed files, pushes the branch and creates/reuses a PR with
    `gh`. Reports the PR URL, version, SHA and local/remote verification status.
