@@ -121,20 +121,14 @@ git config user.email "<email used by the GitHub account>"
 
 ### Claude Code and Codex skills
 
-Project skills live in `.agents/skills/` (read by Codex). Link them for
-Claude Code once per clone:
+Canonical project skills live in `.agents/skills/` for Codex. Claude Code uses
+tracked entry points in `.claude/skills/` that reference the same instructions;
+no per-machine junction setup is required. Both clients share `AGENTS.md`, imported
+by `CLAUDE.md` for Claude compatibility.
 
-```powershell
-# Windows
-New-Item -ItemType Junction -Path .claude\skills\przepisnik -Target "$PWD\.agents\skills\przepisnik"
-New-Item -ItemType Junction -Path .claude\skills\przepisnik-manage -Target "$PWD\.agents\skills\przepisnik-manage"
-```
-
-```bash
-# macOS / Linux
-mkdir -p .claude/skills && ln -s ../../.agents/skills/przepisnik .claude/skills/przepisnik
-ln -s ../../.agents/skills/przepisnik-manage .claude/skills/przepisnik-manage
-```
+Start development planning with `$project-lead` in Codex or `/project-lead` in
+Claude Code. See the [Developer guide](DEVELOPING.md) for phase approvals, the
+developer/tester/GitHub roles and migration from older skill links.
 
 Invoke `$przepisnik` for imports or `$przepisnik-manage` for existing recipes in
 Codex (`/przepisnik` and `/przepisnik-manage` in Claude Code). Skills invoke the CLI;
