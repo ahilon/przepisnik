@@ -114,6 +114,14 @@ approval covers the agreed phase; the agent should not ask for every command.
 New scope, merge and deployment are separate decisions. Host permission prompts
 still apply.
 
+One approval of a concrete PR-publication phase covers branch creation, release
+metadata, sync, checks, staging, commit, push, PR creation and CI inspection,
+including refinements within the same agreed PR scope. Routine choices and the
+next command do not need another conversational confirmation. The agent should
+reuse saved, narrowly scoped host permissions and batch related operations where
+appropriate. A sandbox escalation is a separate technical requirement, not a
+request to approve the task again; skill instructions cannot disable it.
+
 ### Claude Code
 
 Expose the same skill using the repository's existing per-skill link convention.

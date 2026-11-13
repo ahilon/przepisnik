@@ -13,6 +13,15 @@ Read-only inspection and drafting PR text do not authorize publication. Before m
 
 Do not change source/tests or weaken checks to fix a failure. Stop publication and report actionable evidence. Request additional scope only when the needed repair is not already authorized. Do not bypass host permissions.
 
+## Minimize approval interruptions
+
+- Treat approval of a concrete PR-publication phase as authorization for branch creation, metadata edits, environment sync, checks, scoped staging, commit, push, PR creation and CI inspection. Do not ask again before these routine steps.
+- Keep approval valid for follow-up refinements to the same PR within the agreed scope. Reuse its branch/version; ask only for a material scope change, destructive operation, credentials change, merge or deployment not already authorized.
+- Resolve routine implementation choices from the accepted scope. Use progress updates instead of permission questions when no new decision is needed.
+- Reuse saved, appropriately scoped host permission rules. Where supported, request reusable prefixes for routine commands such as Git staging or read-only GitHub inspection; never request broad shell/interpreter permissions.
+- Batch related operations that genuinely share an approval boundary, preserving failure checks and inspection before commit/publication. Avoid issuing a separate escalation for each routine command when a bounded batch suffices.
+- Host approval is separate from task approval. If the sandbox blocks an authorized action, request the required escalation and explain the concrete restriction. Do not add another conversational confirmation, bypass the sandbox or promise that host prompts can be disabled by this skill.
+
 ## Inspect and prepare
 
 1. Read relevant repository instructions and inspect `git status --short`, the intended diff/staged files, branch, remotes and recent history. Preserve unrelated changes; do not automatically stash, reset, rebase or force push. Never sweep all dirty files into a commit.
