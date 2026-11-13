@@ -61,7 +61,6 @@ jobs:
     env:
       COMPOSE_FILE: docker/docker-compose.instance.yaml
       COMPOSE_PROJECT_NAME: przepisnik-instance-ci
-      PRZEPISNIK_CONFIG_FILE: ${{ runner.temp }}/instance-server.toml
 
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -70,7 +69,9 @@ jobs:
 
       - name: Prepare an isolated instance configuration
         run: |
-          cat > "$PRZEPISNIK_CONFIG_FILE" <<'TOML'
+          config_file="$RUNNER_TEMP/instance-server.toml"
+          echo "PRZEPISNIK_CONFIG_FILE=$config_file" >> "$GITHUB_ENV"
+          cat > "$config_file" <<'TOML'
           host = "0.0.0.0"
           port = 8000
           origins = ["http://ci.przepisnik.invalid:8000"]
