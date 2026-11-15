@@ -40,13 +40,24 @@ select = [
   "E", "W", "F", "I", "N", "D", "UP", "ANN", "B", "A", "C4",
   "SIM", "PTH", "RET", "ARG", "PL", "S", "T20", "RUF",
 ]
-ignore = ["D105", "D107"]
+# Explicit return None is the project convention for methods returning no result.
+ignore = ["D105", "D107", "RET501", "PLR1711"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/przepisnik/cli.py" = ["T20"]
 # Pytest assertions express test expectations, not application security checks.
 # Expected values are literal test data; Respo sources use en dashes as separators.
 "tests/**/*.py" = ["S101", "PLR2004", "RUF001"]
+# This declares a wildcard address; binding to it remains an explicit configuration choice.
+"src/przepisnik/constants.py" = ["S104"]
+# The only process boundary: resolved executable, separate arguments, shell=False, timeout.
+"tests/command_runner.py" = ["S603"]
+# Wildcard listeners are deliberate configuration fixtures, not open production sockets.
+"tests/unit/test_config.py" = ["S104"]
+"tests/unit/test_container_health.py" = ["S104"]
+# Flexible test-data builders and heterogeneous decoded CLI JSON are intentionally scoped.
+"tests/unit/factories.py" = ["PLR0913"]
+"tests/unit/test_cli.py" = ["ANN401"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

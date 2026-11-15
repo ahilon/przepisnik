@@ -29,7 +29,7 @@ class Cli:
         self.err = captured.err
         return captured.out
 
-    def json(self, *args: str, expected: int = 0) -> Any:  # noqa: ANN401
+    def json(self, *args: str, expected: int = 0) -> Any:
         """Run a command and parse its JSON output."""
         return json.loads(self(*args, expected=expected))
 

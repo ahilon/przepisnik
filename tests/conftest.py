@@ -14,6 +14,7 @@ import pytest
 from container_runtime import ContainerApplication
 from playwright.sync_api import Page
 
+from przepisnik.constants import IPV4_LOOPBACK
 from przepisnik.core.migration import migrate_json
 from przepisnik.web.config import ServerConfig
 from przepisnik.web.server import RecipeHandler
@@ -71,14 +72,14 @@ def app_url(recipe_data: Path, pytestconfig: pytest.Config) -> Iterator[str]:
             yield url
         return
     handler = partial(RecipeHandler, data_dir=recipe_data, config=ServerConfig())
-    with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
+    with ThreadingHTTPServer((IPV4_LOOPBACK, 0), handler) as server:
         config = ServerConfig(port=server.server_port)
         server.RequestHandlerClass = partial(RecipeHandler, data_dir=recipe_data, config=config)
         thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
         thread.start()
         try:
-            url = f"http://127.0.0.1:{server.server_port}"
-            with closing(HTTPConnection("127.0.0.1", server.server_port, timeout=5)) as client:
+            url = f"http://{IPV4_LOOPBACK}:{server.server_port}"
+            with closing(HTTPConnection(IPV4_LOOPBACK, server.server_port, timeout=5)) as client:
                 client.request("GET", "/api/recipes")
                 response = client.getresponse()
                 response.read()

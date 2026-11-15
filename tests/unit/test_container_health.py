@@ -26,7 +26,7 @@ def connection(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     return factory
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "127.0.0.1"])  # noqa: S104 - Listener test data.
+@pytest.mark.parametrize("host", ["0.0.0.0", "127.0.0.1"])
 def test_probe_uses_internal_listener_and_external_allowed_host(
     connection: MagicMock, host: str
 ) -> None:

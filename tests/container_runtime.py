@@ -1,7 +1,6 @@
 """Run isolated browser-test instances from an already built Docker image."""
 
 import logging
-import shutil
 import subprocess
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -11,11 +10,16 @@ from sys import platform
 from time import monotonic, sleep
 from uuid import uuid4
 
+from command_runner import CommandRunner
+
+from przepisnik.constants import IPV4_LOOPBACK, IPV4_WILDCARD, PROJECT_NAME
+
 logger = logging.getLogger(__name__)
 CONTAINER_PORT = 8000
-COMMAND_TIMEOUT_SECONDS = 30
 START_TIMEOUT_SECONDS = 90
 POLL_INTERVAL_SECONDS = 0.25
+# POSIX UID 0 is the superuser; explicit root execution is never a test default.
+ROOT_USER_ID = 0
 
 
 class ContainerApplication:
@@ -32,6 +36,8 @@ class ContainerApplication:
     ) -> None:
         """Configure an isolated container without starting it.
 
+        Pass optional lifecycle overrides by name, such as user=... or timeout=....
+
         Args:
             data_dir: Disposable SQLite/photo directory shared with test fixtures.
             image: Explicit, already built local image tag or digest.
@@ -43,19 +49,20 @@ class ContainerApplication:
         Returns:
             None: Stores this test's lifecycle settings.
         """
-        executable = shutil.which("docker")
-        if executable is None:
-            raise RuntimeError("Container E2E require the Docker CLI and a running daemon")
+        try:
+            self._commands = CommandRunner("docker")
+        except FileNotFoundError as error:
+            message = "Container E2E require the Docker CLI and a running daemon"
+            raise RuntimeError(message) from error
         ownership = data_dir.stat()
         self._user = user
         if self._user is None and platform != "win32":
             self._user = (ownership.st_uid, ownership.st_gid)
-        self._docker = executable
         self._data_dir = data_dir.resolve()
         self._image = image
         self._artifacts_dir = artifacts_dir
         self._timeout = timeout
-        self._name = f"przepisnik-e2e-{uuid4().hex}"
+        self._name = f"{PROJECT_NAME}-e2e-{uuid4().hex}"
         self._config_file = self._data_dir.parent / f"{self._name}.toml"
 
     def _execute(self, arguments: list[str], *, check: bool = True) -> str:
@@ -72,13 +79,7 @@ class ContainerApplication:
             subprocess.CalledProcessError: If a checked Docker command fails.
             subprocess.TimeoutExpired: If the command exceeds its time limit.
         """
-        result = subprocess.run(  # noqa: S603 - Resolved CLI path, separated args, no shell.
-            [self._docker, *arguments],
-            check=check,
-            capture_output=True,
-            text=True,
-            timeout=COMMAND_TIMEOUT_SECONDS,
-        )
+        result = self._commands.run(arguments, check=check)
         if arguments[0] == "logs":
             return (result.stdout + result.stderr).strip()
         return result.stdout.strip()
@@ -95,15 +96,15 @@ class ContainerApplication:
         user_arguments: list[str] = []
         if self._user is not None:
             uid, gid = self._user
-            if uid == 0:
+            if uid == ROOT_USER_ID:
                 raise RuntimeError("Container E2E require a non-root data owner")
             user_arguments = ["--user", f"{uid}:{gid}"]
         with socket() as reservation:
-            reservation.bind(("127.0.0.1", 0))
+            reservation.bind((IPV4_LOOPBACK, 0))
             port: int = reservation.getsockname()[1]
-        url = f"http://127.0.0.1:{port}"
+        url = f"http://{IPV4_LOOPBACK}:{port}"
         self._config_file.write_text(
-            f'host = "0.0.0.0"\nport = {CONTAINER_PORT}\norigins = ["{url}"]\n',
+            f'host = "{IPV4_WILDCARD}"\nport = {CONTAINER_PORT}\norigins = ["{url}"]\n',
             encoding="utf-8",
         )
         self._execute(
@@ -115,7 +116,7 @@ class ContainerApplication:
                 self._name,
                 *user_arguments,
                 "--publish",
-                f"127.0.0.1:{port}:{CONTAINER_PORT}",
+                f"{IPV4_LOOPBACK}:{port}:{CONTAINER_PORT}",
                 "--mount",
                 f"type=bind,source={self._data_dir},target=/data",
                 "--mount",
@@ -142,7 +143,7 @@ class ContainerApplication:
                 ["inspect", "--format", "{{.State.Running}} {{.State.Health.Status}}", self._name]
             )
             if state == "true healthy":
-                return None  # noqa: RET501 - Explicit None follows project convention.
+                return None
             if state.startswith("false ") or state.endswith(" unhealthy"):
                 raise RuntimeError(f"Container failed readiness: {state}")
             sleep(POLL_INTERVAL_SECONDS)
@@ -165,7 +166,7 @@ class ContainerApplication:
                 self._execute(["rm", "--force", self._name], check=False)
             except (OSError, subprocess.SubprocessError) as error:
                 logger.warning("Could not remove test container %s: %s", self._name, error)
-        return None  # noqa: RET501, PLR1711 - Explicit None follows project convention.
+        return None
 
     @contextmanager
     def running(self) -> Iterator[str]:

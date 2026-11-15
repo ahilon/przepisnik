@@ -9,6 +9,7 @@ from http import HTTPStatus
 from http.client import HTTPConnection, HTTPException
 from pathlib import Path
 
+from przepisnik.constants import IPV4_LOOPBACK, IPV4_WILDCARD
 from przepisnik.web.config import ServerConfig, load_server_config
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,8 @@ class ContainerHealthcheck:
             str: Loopback for an IPv4 wildcard, otherwise the configured host.
         """
         host = self._configuration.host
-        # Comparing the wildcard setting does not bind a socket to that address.
-        if host == "0.0.0.0":  # noqa: S104
-            return "127.0.0.1"
+        if host == IPV4_WILDCARD:
+            return IPV4_LOOPBACK
         return host
 
     def check(self) -> None:
@@ -68,7 +68,7 @@ class ContainerHealthcheck:
             if response.status != HTTPStatus.OK:
                 message = f"Recipe API returned HTTP {response.status}"
                 raise RuntimeError(message)
-        return None  # noqa: RET501, PLR1711 - Explicit None follows project convention.
+        return None
 
 
 def main() -> int:

@@ -11,6 +11,8 @@
 - Verify instance startup, recipe/photo persistence after recreation and isolated
   container-backed browser E2E in GitHub Actions; support the same fixtures on Docker Desktop.
 - Document instance configuration, backup precautions and container test setup.
+- Explain recipe collection, AI assistance and shopping workflows in the README;
+  centralize shared constants, process execution and scoped lint exceptions.
 
 ## [1.10.5] - Unreleased
 

@@ -19,9 +19,9 @@ def docker(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     Returns:
         MagicMock: A subprocess runner simulating a healthy container.
     """
-    monkeypatch.setattr("container_runtime.shutil.which", lambda _: "/usr/bin/docker")
+    monkeypatch.setattr("command_runner.shutil.which", lambda _: "/usr/bin/docker")
     process = MagicMock(return_value=subprocess.CompletedProcess([], 0, "true healthy", ""))
-    monkeypatch.setattr("container_runtime.subprocess.run", process)
+    monkeypatch.setattr("command_runner.subprocess.run", process)
     return process
 
 
@@ -151,7 +151,7 @@ def test_missing_docker_fails_without_host_fallback(
     Returns:
         None: Missing Docker is a clear setup failure.
     """
-    monkeypatch.setattr("container_runtime.shutil.which", lambda _: None)
+    monkeypatch.setattr("command_runner.shutil.which", lambda _: None)
     with pytest.raises(RuntimeError, match="Docker CLI"):
         ContainerApplication(tmp_path, "local-image", tmp_path / "logs")
 
