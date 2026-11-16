@@ -290,10 +290,10 @@ The exact verification commands live in the
 configuration take precedence when commands change. `scripts/check.cmd` is a
 convenience command, not the whole PR verification suite.
 
-Default local verification excludes browser E2E. Currently GitHub runs E2E on PRs
-using an isolated Python server; they do not yet validate a built container. The
-post-merge GHCR/stable pipeline is planned. Do not assume a PR or image is ready
-because local non-browser checks passed. For manual E2E setup and execution, see
+Default local verification excludes browser E2E. GitHub runs isolated Python-server
+and container-backed E2E on PRs. The [release workflow](docker/RELEASE.md) validates
+AMD64/ARM64 and publishes the tested image pair only from main. PR validation does
+not prove registry publication. For manual E2E setup and execution, see
 [tests/README.md](tests/README.md).
 
 ## Branches and versions

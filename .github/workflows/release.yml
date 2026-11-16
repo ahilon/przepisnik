@@ -1,0 +1,188 @@
+name: Release images
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# PR updates cancel stale validation; main commits have an independent publication lock.
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Release changes
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      should_release: ${{ steps.classify.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify runtime changes
+        id: classify
+        env:
+          BEFORE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          args=(--before "$BEFORE" --after "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT")
+          if [ "$FORCE" = true ]; then args+=(--force); fi
+          python3 -m scripts.release changes "${args[@]}"
+
+  quality:
+    name: Release quality
+    needs: changes
+    if: ${{ needs.changes.outputs.should_release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - run: uv run --locked mypy src tests/unit scripts
+      - run: uvx --python 3.12 --from checkov==3.4.3 python -m checkov.main
+
+  unit:
+    name: Release unit
+    needs: changes
+    if: ${{ needs.changes.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/tests.yml
+
+  secrets:
+    name: Release secrets
+    needs: changes
+    if: ${{ needs.changes.outputs.should_release == 'true' }}
+    uses: ./.github/workflows/secrets.yml
+
+  images:
+    name: Release test (${{ matrix.architecture }})
+    needs: [changes, quality, unit, secrets]
+    if: ${{ needs.changes.outputs.should_release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [amd64, arm64]
+    env:
+      ARCHITECTURE: ${{ matrix.architecture }}
+      LOCAL_IMAGE: przepisnik-release:${{ matrix.architecture }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - uses: docker/setup-qemu-action@v4
+        if: ${{ matrix.architecture == 'arm64' }}
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@v4
+      - name: Read package version
+        run: python3 -m scripts.release version --github-env "$GITHUB_ENV"
+      - name: Build one candidate image
+        run: |
+          docker buildx build --load --provenance=false \
+            --platform "linux/$ARCHITECTURE" --target app --file docker/Dockerfile \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$PACKAGE_VERSION" \
+            --tag "$LOCAL_IMAGE" .
+          image_id=$(docker image inspect --format '{{.Id}}' "$LOCAL_IMAGE")
+          echo "RELEASE_IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+      - name: Check startup guards and data persistence
+        run: >-
+          uv run --locked python -m scripts.image_smoke
+          --image "$RELEASE_IMAGE_ID" --artifacts "$RUNNER_TEMP/smoke-$ARCHITECTURE"
+      - name: Install browser dependencies
+        run: uv run --locked playwright install --with-deps chromium
+      - name: Run isolated browser E2E against this image
+        run: >-
+          uv run --locked pytest tests/e2e -p no:cacheprovider
+          --container-image "$RELEASE_IMAGE_ID" --browser chromium
+          --tracing retain-on-failure --output test-results
+          --release-results "$RUNNER_TEMP/e2e-$ARCHITECTURE.json"
+      - name: Require every selected browser test to pass
+        run: python3 -m scripts.release verify-tests "$RUNNER_TEMP/e2e-$ARCHITECTURE.json"
+      - name: Archive the tested image without rebuilding
+        run: >-
+          python3 -m scripts.release archive --image "$RELEASE_IMAGE_ID"
+          --architecture "$ARCHITECTURE" --revision "$GITHUB_SHA"
+          --destination "$RUNNER_TEMP/release-image-$ARCHITECTURE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-image-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/release-image-${{ matrix.architecture }}/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+      - name: Upload failure evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-failure-${{ matrix.architecture }}
+          path: |
+            test-results/
+            ${{ runner.temp }}/smoke-${{ matrix.architecture }}/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish stable image
+    needs: images
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.images.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: release-publish-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Read-only Git credentials refresh main after acquiring the publish lock.
+          persist-credentials: true
+      - name: Skip a candidate superseded by newer runtime code
+        id: current
+        run: |
+          git fetch origin main
+          latest=$(git rev-parse FETCH_HEAD)
+          python3 -m scripts.release eligibility --before "$GITHUB_SHA" --after "$latest" \
+            --github-output "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+        if: ${{ steps.current.outputs.eligible == 'true' }}
+      - uses: actions/download-artifact@v4
+        if: ${{ steps.current.outputs.eligible == 'true' }}
+        with:
+          pattern: release-image-*
+          path: ${{ runner.temp }}/tested-images
+      - uses: docker/login-action@v4
+        if: ${{ steps.current.outputs.eligible == 'true' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested architecture pair and promote stable
+        if: ${{ steps.current.outputs.eligible == 'true' }}
+        env:
+          ARTIFACTS: ${{ runner.temp }}/tested-images
+          CANDIDATE: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          python3 -m scripts.release publish --repository "$GITHUB_REPOSITORY"
+          --revision "$GITHUB_SHA" --artifacts "$ARTIFACTS" --candidate "$CANDIDATE"

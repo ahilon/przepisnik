@@ -48,14 +48,15 @@ Run from the repository root, using current workflow commands/tool pins if chang
 ```text
 uv run --locked ruff check .
 uv run --locked ruff format --check .
-uv run --locked mypy src tests/unit
-uv run --locked pytest tests --ignore=tests/e2e -p no:cacheprovider --cov --cov-report=term --cov-fail-under=80
+uv run --locked mypy src tests/unit scripts
+uv run --locked pytest tests --ignore=tests/e2e -p no:cacheprovider --cov --cov-report=term --cov-fail-under=80 --release-results local-artifacts/tester-results.json
+uv run --locked python -m scripts.release verify-tests local-artifacts/tester-results.json
 uvx --python 3.12 --from checkov==3.4.3 python -m checkov.main
 gitleaks git --config .gitleaks.toml --redact=100 --no-banner --log-opts="--all" .
 ```
 
 Do not use autoformat/fix modes. `scripts/check.cmd` is not the complete suite:
-it currently omits pytest and uses a smaller Mypy scope. Checkov's configured
+it currently omits pytest and Gitleaks. Checkov's configured
 Dockerfile/Actions/secrets checks are not a full image/dependency vulnerability scan.
 
 Use Gitleaks 8.30.1 (an explicit executable path is acceptable), matching CI.
@@ -78,9 +79,10 @@ dependent checks after a blocker. State which checks were not reached. Retry onl
 after a relevant change or a concrete transient failure. Separate environment/tool
 errors from actual findings, and do not silently drop a failing check.
 
-Browser E2E and Docker smoke/build tests require separate scope. Current browser
-fixtures start their own Python server; passing them does not validate an image.
-The post-merge stable pipeline is not yet implemented.
+Browser E2E and Docker smoke/build tests require separate scope. Fixtures use an
+isolated Python server by default or an explicit prebuilt --container-image.
+The release workflow validates AMD64/ARM64 and publishes tested images only from
+main; PR validation never establishes that GHCR publication succeeded.
 
 ## Evidence and handoff
 

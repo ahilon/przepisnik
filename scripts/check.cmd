@@ -5,7 +5,7 @@ uv run ruff check .
 if errorlevel 1 goto failed
 uv run ruff format --check .
 if errorlevel 1 goto failed
-uv run python -m mypy src
+uv run python -m mypy src tests/unit scripts
 if errorlevel 1 goto failed
 rem Checkov reads .checkov.yaml; the module form avoids blocked tool executables.
 uvx --python 3.12 --from checkov==3.4.3 python -m checkov.main

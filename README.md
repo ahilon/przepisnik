@@ -101,6 +101,8 @@ For an isolated Docker environment with six sample recipes, see the
 [Docker demo instructions](docker/demo/README.md).
 For an instance container with persistent data and its own configuration, see
 the [container guide](docker/README.md).
+For tested AMD64/ARM64 images published after merge, GHCR access and Raspberry Pi
+pull/update commands, see [image releases](docker/RELEASE.md).
 
 ## Database upgrades
 
@@ -515,6 +517,7 @@ of the same workflow/ref; Secrets keeps push and PR runs separate.
 | `checkov.yml` | Checkov | every PR | Dockerfile, workflow and secret checks |
 | `secrets.yml` | Secrets | every push and PR, including drafts | Gitleaks scans fetched Git history with redacted output |
 | `docker.yml` | Docker build / Instance container | PRs changing the image or tests | Checks demo readiness, instance startup/persistence and browser E2E against the image |
+| `release.yml` | Release images | runtime changes on PR/main; manual dispatch | Tests AMD64/ARM64 and publishes the tested pair to GHCR only from main |
 
 Require Ruff, Mypy, Unit tests, E2E tests, Checkov and Secrets in the `main` branch ruleset.
 Keep Docker build optional: path-filtered workflows do not run on unrelated pull

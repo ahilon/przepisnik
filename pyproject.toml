@@ -1,6 +1,6 @@
 [project]
 name = "przepisnik"
-version = "1.11.0"
+version = "1.11.1"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
 authors = [
@@ -52,7 +52,8 @@ ignore = ["D105", "D107", "RET501", "PLR1711"]
 # This declares a wildcard address; binding to it remains an explicit configuration choice.
 "src/przepisnik/constants.py" = ["S104"]
 # The only process boundary: resolved executable, separate arguments, shell=False, timeout.
-"tests/command_runner.py" = ["S603"]
+"scripts/command_runner.py" = ["S603"]
+"scripts/release.py" = ["T20"]
 # Wildcard listeners are deliberate configuration fixtures, not open production sockets.
 "tests/unit/test_config.py" = ["S104"]
 "tests/unit/test_container_health.py" = ["S104"]
@@ -81,12 +82,13 @@ module = ["factories", "test_pdf_adapter"]
 disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 markers = [
     "sanity: simple verification if aplication works"
 ]
 
 [tool.coverage.run]
-source = ["przepisnik"]
+source = ["przepisnik", "scripts"]
 branch = true
 
 [tool.coverage.report]
