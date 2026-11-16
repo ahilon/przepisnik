@@ -5,7 +5,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from command_runner import CommandRunner
+from scripts.command_runner import CommandRunner
 
 
 def test_arguments_remain_literal_and_output_streams_stay_separate() -> None:
@@ -57,7 +57,7 @@ def test_missing_executable_fails_before_starting_a_process(
     Returns:
         None: No process can be started with an unresolved executable.
     """
-    monkeypatch.setattr("command_runner.shutil.which", lambda _: None)
+    monkeypatch.setattr("scripts.command_runner.shutil.which", lambda _: None)
     with pytest.raises(FileNotFoundError, match="Executable not found"):
         CommandRunner("missing-command")
 
@@ -72,7 +72,7 @@ def test_timeout_is_bounded_and_propagates(monkeypatch: pytest.MonkeyPatch) -> N
         None: The configured timeout and shell-free invocation were verified.
     """
     process = MagicMock(side_effect=subprocess.TimeoutExpired("command", 2))
-    monkeypatch.setattr("command_runner.subprocess.run", process)
+    monkeypatch.setattr("scripts.command_runner.subprocess.run", process)
     runner = CommandRunner(sys.executable, timeout=2)
     with pytest.raises(subprocess.TimeoutExpired):
         runner.run(["--version"])

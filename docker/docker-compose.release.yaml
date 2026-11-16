@@ -1,0 +1,22 @@
+name: przepisnik-instance
+
+services:
+  app:
+    image: ${PRZEPISNIK_IMAGE:-ghcr.io/ahilon/przepisnik:stable}
+    ports:
+      - "${PRZEPISNIK_BIND_ADDRESS:-127.0.0.1}:${PRZEPISNIK_PORT:-8000}:8000"
+    environment:
+      PRZEPISNIK_DATA: /data
+      PRZEPISNIK_CONFIG: /config/server.toml
+    volumes:
+      - instance-data:/data
+      - type: bind
+        source: ${PRZEPISNIK_CONFIG_FILE:-../przepisnik.toml}
+        target: /config/server.toml
+        read_only: true
+        bind:
+          create_host_path: false
+    restart: unless-stopped
+
+volumes:
+  instance-data:

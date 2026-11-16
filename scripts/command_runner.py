@@ -1,4 +1,4 @@
-"""Shared, shell-free command execution for Windows and Linux test helpers."""
+"""Shared, shell-free command execution for test and release automation."""
 
 import shutil
 import subprocess

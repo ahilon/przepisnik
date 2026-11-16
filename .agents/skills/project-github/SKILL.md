@@ -48,7 +48,7 @@ missing prerequisite rather than silently skipping verification.
 
 Stop before commit/push/PR on a failed, missing or incomplete required local check. Keep evidence tied to the final candidate. If other dirty files influence checks, isolate the intended candidate without moving or discarding user work; do not claim the committed candidate passed solely from a different working tree. Recheck affected controls after edits, and repeat the suite after upstream integration invalidates the previous result. Avoid retries without a concrete reason.
 
-Local browser E2E are outside this skill's default execution scope. Inspect their remote results: currently `.github/workflows/e2e.yml` runs on PRs and starts its own Python server. A post-merge container release pipeline is planned but not implemented. Do not claim browser tests or image publication passed without evidence.
+Local browser E2E are outside this skill's default execution scope. Inspect their remote results: currently `.github/workflows/e2e.yml` runs on PRs and starts its own Python server. The release workflow validates AMD64/ARM64 on PRs and publishes tested images only from main after merge. PR publication is not image publication or deployment. Do not claim browser tests or image publication passed without evidence.
 
 ## Commit, push and create the PR
 
