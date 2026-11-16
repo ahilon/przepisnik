@@ -87,6 +87,12 @@ class ImageSmoke:
                 ).stdout
                 return int(json.loads(ports)["8000/tcp"][0]["HostPort"])
             if state.startswith("false ") or state.endswith(" unhealthy"):
+                health = self._docker.run(
+                    ["inspect", "--format", "{{json .State.Health}}", self._name], check=False
+                )
+                (self._artifacts / "health.log").write_text(
+                    health.stdout + health.stderr, encoding="utf-8"
+                )
                 raise RuntimeError(f"Image startup failed: {state}")
             time.sleep(POLL_SECONDS)
         raise RuntimeError("Image startup timed out")

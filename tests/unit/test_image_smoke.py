@@ -87,6 +87,7 @@ def test_failed_smoke_start_removes_resources(
         ImageSmoke("local-image", tmp_path / "smoke").verify()
     assert runner.run.call_args.args[0][:2] == ["volume", "rm"]
     assert not (tmp_path / "smoke/result.json").exists()
+    assert (tmp_path / "smoke/health.log").is_file()
 
 
 def test_http_probe_uses_configured_host_and_real_statuses(

@@ -13,8 +13,8 @@ It never embeds personal data or demo recipes. PR jobs cannot publish images.
    at least 80% coverage. Every selected test must pass: zero tests, skips,
    expected failures, unexpected passes and collection/setup/teardown failures
    cannot establish a successful release.
-3. Build `linux/amd64` and `linux/arm64` separately. ARM64 uses QEMU on the hosted
-   AMD64 runner. Both images must pass startup/data-persistence checks and the full
+3. Build `linux/amd64` and `linux/arm64` separately on native `ubuntu-24.04` and
+   `ubuntu-24.04-arm` runners. Both images must pass startup/data-persistence checks and the full
    container-backed browser suite.
 4. Save those exact image IDs as short-lived compressed Actions artifacts.
    The publication job loads them and checks architecture, version, source revision
