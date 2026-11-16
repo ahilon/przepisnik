@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## [1.10.6] - Unreleased
+
+- Separate the default instance image from the explicit demo target, with non-root
+  execution, persistent data and read-only server configuration mounted by Compose.
+- Check readiness against the configured API host; initialize only empty data and
+  require explicit migration before starting with legacy JSON collections.
+- Verify instance startup, recipe/photo persistence after recreation and isolated
+  container-backed browser E2E in GitHub Actions; support the same fixtures on Docker Desktop.
+- Document instance configuration, backup precautions and container test setup.
+- Explain recipe collection, AI assistance and shopping workflows in the README;
+  centralize shared constants, process execution and scoped lint exceptions.
+- Reference checkout consistently as `actions/checkout@v5` across workflows.
+
 ## [1.10.5] - Unreleased
 
 - Add a pinned, checksum-verified Gitleaks CLI workflow for all pushes and pull

@@ -110,7 +110,7 @@ def draft(
     return RecipeDraft(title=title, steps=list(steps), variant=variant_data(names, kcal=kcal))
 
 
-def recipe(  # noqa: PLR0913 - keyword-only builder options
+def recipe(
     title: str = DEFAULT_TITLE,
     *,
     kinds: Sequence[VariantKind] = (VariantKind.FEMALE,),

@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from pydantic import TypeAdapter, ValidationError
 
 from przepisnik.adapters.pdf import PdfDocument
+from przepisnik.constants import PROJECT_NAME
 from przepisnik.core.database import DATABASE_NAME, SqliteStore
 from przepisnik.core.importer import (
     ExtractedRecipe,
@@ -72,7 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="przepisnik", description=__doc__)
+    parser = argparse.ArgumentParser(prog=PROJECT_NAME, description=__doc__)
     parser.add_argument(
         "--data-dir",
         type=Path,

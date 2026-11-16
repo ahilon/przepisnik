@@ -1,144 +1,81 @@
-# przepisnik
+# Przepiśnik
 
-Recipe knowledge base built from diet-plan PDFs, recipe websites and own recipes.
-Every source is validated against a shared Pydantic schema and stored in SQLite.
-The CLI, project skills and local recipe browser share the same application operations.
+**Your recipes, your database, your server.**
 
-This project is developed with AI assistance, including Codex and Claude Code,
-for planning, implementation and documentation.
+Przepiśnik is a self-hosted recipe collection for everyday cooking. Bring together
+your own recipes, recipes from websites and diet-plan PDFs in one searchable place.
+Keep the ingredients, instructions, photos and source details together, then use
+that collection to decide what to cook and what to buy.
 
-## Getting started as a developer
+Run the browser and SQLite database on your own computer or home server, and open
+the Polish-language interface from a laptop or phone on your trusted network.
+The recipe browser needs no cloud account or separate database service. Your data
+is stored in an ordinary directory that you can back up and move to another instance.
 
-For the developer toolchain and AI-assisted PR workflow, see the
-[Developer guide](DEVELOPING.md).
+## What you can do
 
-### Prerequisites
+- **Collect recipes from different sources.** Add a family recipe in the browser,
+  import a supported diet-plan PDF, or ask an AI assistant to extract recipes from
+  a website, text or photo. Imports validate the data before saving it.
+- **Keep related portions together.** Store female, male and family variants of a
+  dish under one recipe, with each variant's ingredients, nutrition and preparation
+  differences. Compare variants without keeping separate, disconnected collections.
+- **Cook for the number of people you need.** Change the serving count to scale
+  known ingredient quantities and nutrition. The original recipe stays intact.
+- **Build one shopping list.** Add ingredients using the selected portions, combine
+  matching products with compatible units, add custom items and tick off what you
+  already have. Export products still to buy with **Eksportuj do PDF**, using your
+  browser's **Save as PDF** print destination.
+- **Find and organize your collection.** Search by name or ingredient, filter by
+  meal, dish, tags and variant, save favorites and notes, and hide or restore recipes.
+- **Keep control of storage and hosting.** Use a local server or an instance
+  container with persistent data, explicit network settings and your own backups.
 
-- [Git](https://git-scm.com/downloads)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) - manages Python,
-  the virtual environment and dependencies. A separate Python installation is not
-  needed: uv downloads the version from `.python-version` (3.12) when it is missing.
+For example, collect two portion variants from a diet plan, select the one you
+want to cook, adjust it for three people and send its ingredients to the shared
+shopping list. Open the list on your phone or save it as a PDF before shopping.
 
-```powershell
-# Windows
-winget install --id=astral-sh.uv -e
+## Work with recipes through AI
+
+Project skills let Codex and Claude Code import and manage recipes through the same
+validated CLI used by the application. Talk to the assistant in ordinary language:
+
+```text
+$przepisnik Dodaj przepisy z tego PDF-a jako wariant kobieta.
+$przepisnik Dodaj mój przepis na zupę z tego tekstu.
+$przepisnik-manage Znajdź obiady z kurczakiem i oznacz ten przepis jako ulubiony.
+$przepisnik-manage Ukryj ten przepis w mojej kolekcji.
 ```
 
-```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+Use `$przepisnik` for imports and `$przepisnik-manage` for existing recipes in Codex;
+Claude Code uses `/przepisnik` and `/przepisnik-manage`. The assistant can search,
+update notes and categories, hide or restore recipes, and move or copy variants.
+Hiding removes a recipe from normal browsing while retaining it in **Ukryte**;
+permanent deletion is not currently exposed by the recipe commands.
 
-### Get the code
+Recipe storage and the browser run on your server. AI assistance runs in your chosen
+client; source material you provide to an external AI service is handled by that
+service. The [developer guide](#developer-guide) covers client setup and the
+separate development-agent workflow.
 
-```bash
-git clone https://github.com/ahilon/przepisnik.git
-cd przepisnik
-```
+## Hosting and safety
 
-To work on or review an existing pull request, fetch its branch by number:
+The server listens on loopback by default. LAN access requires an explicit listener
+and allowed browser origins; requests also check the Host header. Imports and edits
+are validated, conflicting edits are rejected, and the container runs as a non-root
+user with its data separate from the image.
 
-```bash
-git fetch origin pull/<number>/head:pr-<number>
-git switch pr-<number>
-```
-
-With the [GitHub CLI](https://cli.github.com/) installed, `gh pr checkout <number>`
-does the same.
-
-### Install dependencies
-
-```bash
-uv sync --locked
-```
-
-This creates `.venv/` with the application and the `dev` dependency group (pytest,
-Playwright, Ruff, mypy). `--locked` installs exactly the versions in `uv.lock`, as CI
-does, and fails if `pyproject.toml` and the lock file disagree. Run it again after
-pulling changes or switching branches. Prefix commands with `uv run`; activating the
-virtual environment is not necessary. SQLite comes with Python's standard library;
-no database service is required.
-
-### Run the application
-
-```bash
-uv run przepisnik serve
-```
-
-Open **http://localhost:8000**. Data is stored in `./data` (ignored by Git) and starts
-empty. To work with the six sample recipes used by the tests and the Docker demo,
-seed a fresh `data/` directory once:
-
-```powershell
-# Windows
-New-Item -ItemType Directory -Force data | Out-Null
-Copy-Item -Recurse docker\demo\recipes data\recipes
-Copy-Item docker\demo\placeholder.png data\empty_dish.png
-uv run przepisnik migrate-json
-```
-
-```bash
-# macOS / Linux
-mkdir -p data && cp -R docker/demo/recipes data/recipes
-cp docker/demo/placeholder.png data/empty_dish.png
-uv run przepisnik migrate-json
-```
-
-### Run checks and tests
-
-```powershell
-./scripts/check.cmd                       # Ruff, formatting, mypy, Checkov (Windows)
-uv run pytest tests --ignore=tests/e2e    # unit tests, no browser needed
-```
-
-Browser (E2E) tests use Playwright. Install Chromium once per machine, and again
-after a Playwright upgrade in `uv.lock`:
-
-```bash
-uv run playwright install chromium        # Linux: add --with-deps for system libraries
-uv run pytest tests/e2e                   # starts its own server on temporary data
-uv run pytest tests/e2e --headed          # watch the browser
-```
-
-The tests do not use `data/` or a running server. See [tests/README.md](tests/README.md)
-for recording new tests, sanity tests, coverage and traces, and
-[Development](#development) for the individual checks and CI.
-
-### Before opening a pull request
-
-- Run `./scripts/check.cmd` and the tests; CI runs the same checks on every ready PR.
-- Add a short entry to [CHANGELOG.md](CHANGELOG.md), which records version history.
-
-### Git identity
-
-Set the author for this repository, especially when the computer is also used
-with other GitHub accounts:
-
-```bash
-git config user.name "<name>"
-git config user.email "<email used by the GitHub account>"
-```
-
-### Claude Code and Codex skills
-
-Canonical project skills live in `.agents/skills/` for Codex. Claude Code uses
-tracked entry points in `.claude/skills/` that reference the same instructions;
-no per-machine junction setup is required. Both clients share `AGENTS.md`, imported
-by `CLAUDE.md` for Claude compatibility.
-
-Start development planning with `$project-lead` in Codex or `/project-lead` in
-Claude Code. See the [Developer guide](DEVELOPING.md) for phase approvals, the
-developer/tester/GitHub roles and migration from older skill links.
-
-Invoke `$przepisnik` for imports or `$przepisnik-manage` for existing recipes in
-Codex (`/przepisnik` and `/przepisnik-manage` in Claude Code). Skills invoke the CLI;
-they do not generate scripts or directly write database files for routine operations.
+There is no built-in login, user authorization or TLS. Use the current server on a
+trusted local network; host/origin checks do not make it a public internet service.
+See [instance setup](SETUP.md) for network configuration and backups.
 
 ## Instance setup
 
 For your own instance, network names and configuration, see [SETUP.md](SETUP.md).
 For an isolated Docker environment with six sample recipes, see the
 [Docker demo instructions](docker/demo/README.md).
+For an instance container with persistent data and its own configuration, see
+the [container guide](docker/README.md).
 
 ## Database upgrades
 
@@ -352,8 +289,8 @@ both amount and unit, and empty titles, steps or tags are rejected.
 - `--dry-run` compares without updating the database, registry or images.
 
 Variant moves/copies never scale ingredients or nutrition and refuse an occupied target.
-The shared operations accept `expected_updated_at` for optimistic concurrency in the
-future editing UI. Bulk editing and web-based editing are not implemented yet.
+The shared operations accept `expected_updated_at` for optimistic concurrency.
+The browser supports individual recipe editing; bulk editing is not implemented.
 
 ## Export and backups
 
@@ -378,10 +315,143 @@ incoming draft for review with `recipes show`.
 - `adapters/` - file format readers (PDF via PyMuPDF).
 - `web/` - local HTTP routes and bundled interface; reads use the same store and filters.
 
+## Developer guide
+
+The project is developed with AI assistance, including Codex and Claude Code,
+for planning, implementation and documentation.
+
+For the developer toolchain and AI-assisted PR workflow, see the
+[Developer guide](DEVELOPING.md).
+
+### Prerequisites
+
+- [Git](https://git-scm.com/downloads)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) - manages Python,
+  the virtual environment and dependencies. A separate Python installation is not
+  needed: uv downloads the version from `.python-version` (3.12) when it is missing.
+
+```powershell
+# Windows
+winget install --id=astral-sh.uv -e
+```
+
+```bash
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Get the code
+
+```bash
+git clone https://github.com/ahilon/przepisnik.git
+cd przepisnik
+```
+
+To work on or review an existing pull request, fetch its branch by number:
+
+```bash
+git fetch origin pull/<number>/head:pr-<number>
+git switch pr-<number>
+```
+
+With the [GitHub CLI](https://cli.github.com/) installed, `gh pr checkout <number>`
+does the same.
+
+### Install dependencies
+
+```bash
+uv sync --locked
+```
+
+This creates `.venv/` with the application and the `dev` dependency group (pytest,
+Playwright, Ruff, mypy). `--locked` installs exactly the versions in `uv.lock`, as CI
+does, and fails if `pyproject.toml` and the lock file disagree. Run it again after
+pulling changes or switching branches. Prefix commands with `uv run`; activating the
+virtual environment is not necessary. SQLite comes with Python's standard library;
+no database service is required.
+
+### Run the application
+
+```bash
+uv run przepisnik serve
+```
+
+Open **http://localhost:8000**. Data is stored in `./data` (ignored by Git) and starts
+empty. To work with the six sample recipes used by the tests and the Docker demo,
+seed a fresh `data/` directory once:
+
+```powershell
+# Windows
+New-Item -ItemType Directory -Force data | Out-Null
+Copy-Item -Recurse docker\demo\recipes data\recipes
+Copy-Item docker\demo\placeholder.png data\empty_dish.png
+uv run przepisnik migrate-json
+```
+
+```bash
+# macOS / Linux
+mkdir -p data && cp -R docker/demo/recipes data/recipes
+cp docker/demo/placeholder.png data/empty_dish.png
+uv run przepisnik migrate-json
+```
+
+### Run checks and tests
+
+```powershell
+./scripts/check.cmd                       # Ruff, formatting, mypy, Checkov (Windows)
+uv run pytest tests --ignore=tests/e2e    # unit tests, no browser needed
+```
+
+Browser (E2E) tests use Playwright. Install Chromium once per machine, and again
+after a Playwright upgrade in `uv.lock`:
+
+```bash
+uv run playwright install chromium        # Linux: add --with-deps for system libraries
+uv run pytest tests/e2e                   # starts its own server on temporary data
+uv run pytest tests/e2e --headed          # watch the browser
+```
+
+The tests do not use `data/` or a running server. See [tests/README.md](tests/README.md)
+for recording new tests, sanity tests, coverage and traces, and
+[Development](#development) for the individual checks and CI.
+
+### Before opening a pull request
+
+- Run `./scripts/check.cmd` and the tests; CI runs the same checks on every ready PR.
+- Add a short entry to [CHANGELOG.md](CHANGELOG.md), which records version history.
+
+### Git identity
+
+Set the author for this repository, especially when the computer is also used
+with other GitHub accounts:
+
+```bash
+git config user.name "<name>"
+git config user.email "<email used by the GitHub account>"
+```
+
+### Claude Code and Codex skills
+
+Canonical project skills live in `.agents/skills/` for Codex. Claude Code uses
+tracked entry points in `.claude/skills/` that reference the same instructions;
+no per-machine junction setup is required. Both clients share `AGENTS.md`, imported
+by `CLAUDE.md` for Claude compatibility.
+
+Start development planning with `$project-lead` in Codex or `/project-lead` in
+Claude Code. See the [Developer guide](DEVELOPING.md) for phase approvals, the
+developer/tester/GitHub roles and migration from older skill links.
+
+Invoke `$przepisnik` for imports or `$przepisnik-manage` for existing recipes in
+Codex (`/przepisnik` and `/przepisnik-manage` in Claude Code). Skills invoke the CLI;
+they do not generate scripts or directly write database files for routine operations.
+
 ## Development
 
 Ruff handles linting (including the `PL` rules derived from Pylint) and formatting;
-mypy checks types. Run all checks on Windows with:
+mypy checks types. Lint policy lives in `pyproject.toml`: the explicit `return None`
+convention is shared across the project, while intentional test/security exceptions
+are limited to named files with an explanation. A separate Pylint configuration is
+not used by these checks. Run the Windows lint/type/infrastructure checks with:
 
 ```powershell
 ./scripts/check.cmd
@@ -419,7 +489,7 @@ of the same workflow/ref; Secrets keeps push and PR runs separate.
 | `e2e.yml` | E2E tests | every PR | Playwright scenarios; traces uploaded on failure |
 | `checkov.yml` | Checkov | every PR | Dockerfile, workflow and secret checks |
 | `secrets.yml` | Secrets | every push and PR, including drafts | Gitleaks scans fetched Git history with redacted output |
-| `docker.yml` | Docker build | PRs changing the image | Builds the demo image and waits for its healthcheck |
+| `docker.yml` | Docker build / Instance container | PRs changing the image or tests | Checks demo readiness, instance startup/persistence and browser E2E against the image |
 
 Require Ruff, Mypy, Unit tests, E2E tests, Checkov and Secrets in the `main` branch ruleset.
 Keep Docker build optional: path-filtered workflows do not run on unrelated pull

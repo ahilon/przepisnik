@@ -5,7 +5,8 @@
 Install Git, Python 3.12 or newer, and uv. Clone this repository, enter its folder,
 and run `uv sync --locked`. On subsequent updates, use `git pull --ff-only`
 and `uv sync --locked` while the server is stopped. Automatic Docker deployments
-are planned separately and are not installed by these instructions.
+are planned separately and are not installed by these instructions. For a manually
+managed container with persistent data, see [the container guide](docker/README.md).
 
 ## Prepare instance data
 

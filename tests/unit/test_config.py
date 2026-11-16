@@ -67,7 +67,7 @@ def test_toml_file_is_validated(tmp_path: Path) -> None:
     path = tmp_path / "server.toml"
     path.write_text('host = "0.0.0.0"\nport = 8001\norigins = ["http://nas:8001"]\n', "utf-8")
     assert load_server_config(path) == ServerConfig(
-        host="0.0.0.0",  # noqa: S104
+        host="0.0.0.0",
         port=8001,
         origins=["http://nas:8001"],
     )

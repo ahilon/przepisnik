@@ -45,5 +45,8 @@ The image's `HEALTHCHECK` reads the recipe API; Compose waits for readiness inst
 for a fixed interval. An occupied host port 8001 fails startup. Stop the conflicting
 process; if changing the port, also update the browser origins in `server.toml`.
 
-This is a disposable development/demo image, not a production deployment. Pytest,
-Playwright and GitHub Actions integration will be added separately.
+Compose explicitly builds the `demo` target. The default image contains no sample
+recipes; see [the instance container guide](../README.md) for configuration and
+persistent data. GitHub Actions checks demo readiness separately from instance
+lifecycle checks and browser E2E against the instance image. Browser tests use their
+own Python server by default unless `--container-image` is supplied.

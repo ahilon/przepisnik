@@ -1,0 +1,5 @@
+# Container listener; published host ports remain controlled by Docker/Compose.
+host = "0.0.0.0"
+port = 8000
+# Replace these with the exact browser URL(s) when exposing the instance on a LAN.
+origins = ["http://localhost:8000", "http://127.0.0.1:8000"]

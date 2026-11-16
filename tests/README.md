@@ -20,6 +20,27 @@ Neither the real `data/` directory nor the persistent Docker demo volume is used
 Temporary files can remain under pytest's temporary root according to pytest's
 retention policy; they are not reused by later tests.
 
+### Container backend in Actions
+
+The `Instance container` job in `.github/workflows/docker.yml` builds the production
+image and runs the same browser scenarios against that exact local image ID:
+
+```sh
+uv run --locked pytest tests/e2e --container-image "$CONTAINER_TEST_IMAGE" \
+  --browser chromium --tracing retain-on-failure --output test-results
+```
+
+This opt-in backend requires a local Docker daemon running Linux containers.
+It never builds or pulls an image and fails if Docker or image startup fails.
+Each test gets a separate container, loopback port, allowed-origin configuration
+and bind-mounted disposable data. On Linux, the container uses the non-root data
+owner's UID/GID so fixtures can still add recipes from the host. On Windows with
+Docker Desktop, it retains the image's default non-root user instead of passing
+Windows' synthetic UID/GID. Its healthcheck must pass before
+browser navigation. Teardown saves both log streams under
+`test-results/container-logs/` and removes the test container even after a failure.
+The normal backend above remains the default when no image is specified.
+
 In a browser test, request `app_page: Page` instead of `page: Page` and remove any
 hardcoded `page.goto(...)`. The `app_page` fixture already opens the application.
 Request `app_url` for its address or `recipe_data` for this test's data directory

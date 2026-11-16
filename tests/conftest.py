@@ -11,11 +11,28 @@ from pathlib import Path
 from threading import Thread
 
 import pytest
+from container_runtime import ContainerApplication
 from playwright.sync_api import Page
 
+from przepisnik.constants import IPV4_LOOPBACK
 from przepisnik.core.migration import migrate_json
 from przepisnik.web.config import ServerConfig
 from przepisnik.web.server import RecipeHandler
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register the explicit opt-in to an already built container image.
+
+    Args:
+        parser: Pytest's command-line option registry.
+
+    Returns:
+        None: Registers the container backend option.
+    """
+    parser.addoption(
+        "--container-image",
+        help="Run isolated application containers from this already built Linux image",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -37,17 +54,32 @@ def recipe_data(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def app_url(recipe_data: Path) -> Iterator[str]:
-    """Serve only this test's data on an OS-assigned loopback port."""
+def app_url(recipe_data: Path, pytestconfig: pytest.Config) -> Iterator[str]:
+    """Serve disposable data using the explicitly selected backend.
+
+    Args:
+        recipe_data: This test's isolated SQLite database and photos.
+        pytestconfig: Settings including the optional prebuilt container image.
+
+    Yields:
+        str: URL of the healthy application instance.
+    """
+    image = pytestconfig.getoption("--container-image")
+    if image:
+        artifacts_dir = Path(str(pytestconfig.getoption("--output"))) / "container-logs"
+        application = ContainerApplication(recipe_data, str(image), artifacts_dir)
+        with application.running() as url:
+            yield url
+        return
     handler = partial(RecipeHandler, data_dir=recipe_data, config=ServerConfig())
-    with ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
+    with ThreadingHTTPServer((IPV4_LOOPBACK, 0), handler) as server:
         config = ServerConfig(port=server.server_port)
         server.RequestHandlerClass = partial(RecipeHandler, data_dir=recipe_data, config=config)
         thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
         thread.start()
         try:
-            url = f"http://127.0.0.1:{server.server_port}"
-            with closing(HTTPConnection("127.0.0.1", server.server_port, timeout=5)) as client:
+            url = f"http://{IPV4_LOOPBACK}:{server.server_port}"
+            with closing(HTTPConnection(IPV4_LOOPBACK, server.server_port, timeout=5)) as client:
                 client.request("GET", "/api/recipes")
                 response = client.getresponse()
                 response.read()
