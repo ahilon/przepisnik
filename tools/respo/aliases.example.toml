@@ -1,0 +1,5 @@
+# Copy to an ignored local file; names here are explicit assignments, not guesses.
+[aliases]
+K = "female"
+M = "male"
+F = "family"

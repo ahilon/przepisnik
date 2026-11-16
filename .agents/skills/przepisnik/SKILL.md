@@ -23,6 +23,8 @@ already been specified for that source in the conversation. Never infer it from 
 person's name or greeting; you may show hints
 (greeting line, daily kcal) to help them decide.
 
+For a whole folder of Respo PDFs producing a new collection, use the `tool-respo` skill and its reviewed script instead of repeating single-file imports.
+
 ## Workflow
 
 1. **Detect:** `uv run przepisnik detect <file>`.
@@ -76,4 +78,4 @@ person's name or greeting; you may show hints
 
 If the user imports many recipes from one source with a stable layout, suggest writing a
 dedicated parser (in `src/przepisnik/parsers/`, registered in `registry.py`) with the
-`python-dev` skill instead of extracting each recipe manually.
+`project-developer` skill instead of extracting each recipe manually.

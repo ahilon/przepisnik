@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.11.0] - Unreleased
+
+- Build fresh Respo collections from PDF folders with explicit portion aliases,
+  whole-batch previews, conflict rejection and validated staged publication.
+- Bundle SQLite, photos, a JSON import report and usage instructions together.
+- Add the shared Codex/Claude `tool-respo` skill and document tool management.
+
 ## [1.10.6] - Unreleased
 
 - Separate the default instance image from the explicit demo target, with non-root
