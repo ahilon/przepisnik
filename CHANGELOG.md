@@ -13,6 +13,7 @@
 - Document instance configuration, backup precautions and container test setup.
 - Explain recipe collection, AI assistance and shopping workflows in the README;
   centralize shared constants, process execution and scoped lint exceptions.
+- Reference checkout consistently as `actions/checkout@v5` across workflows.
 
 ## [1.10.5] - Unreleased
 

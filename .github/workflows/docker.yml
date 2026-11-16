@@ -34,8 +34,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # Full commit SHA pins checkout to this reviewed revision; v5 is a movable tag.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@v5
 
       # Builds the image without publishing it and waits for its HEALTHCHECK.
       - name: Build and start the demo image
@@ -64,8 +63,7 @@ jobs:
       COMPOSE_PROJECT_NAME: przepisnik-instance-ci
 
     steps:
-      # Same pinned checkout revision as the demo job, rather than following a tag.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
