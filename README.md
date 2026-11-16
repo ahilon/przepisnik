@@ -58,6 +58,31 @@ client; source material you provide to an external AI service is handled by that
 service. The [developer guide](#developer-guide) covers client setup and the
 separate development-agent workflow.
 
+## Task tools and Respo folders
+
+[Tools](tools/README.md) combine reviewed scripts with small skills for repeatable
+jobs. The [Respo tool](tools/respo/README.md) turns a folder of PDFs into a fresh
+portable collection: SQLite, photos, an import report and usage instructions.
+
+Name source folders `kobieta`, `mezczyzna` or `rodzina`, or explicitly map aliases
+such as `K=female` and `M=male`. The agent never guesses a variant from a name.
+
+```text
+$tool-respo Import PDFs from przepisy/plan into data/respo.
+Use kobieta and K for female, mezczyzna and M for male. Preview first.
+```
+
+Run the same tool without AI:
+
+```sh
+uv run --locked python tools/respo/import_recipes.py --source przepisy/plan --output data/respo --alias K=female --dry-run
+```
+
+After reviewing the preview, repeat without `--dry-run`. Existing output is never
+reused or overwritten; choose a new directory for another build. Failed batches
+publish no partial collection. Sources stay untouched. Keep personal PDFs under
+ignored `przepisy/`, output under `data/` and private alias config in `local-artifacts/`.
+
 ## Hosting and safety
 
 The server listens on loopback by default. LAN access requires an explicit listener

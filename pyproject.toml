@@ -1,6 +1,6 @@
 [project]
 name = "przepisnik"
-version = "1.10.6"
+version = "1.11.0"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
 authors = [
@@ -45,6 +45,7 @@ ignore = ["D105", "D107", "RET501", "PLR1711"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/przepisnik/cli.py" = ["T20"]
+"src/przepisnik/tools/respo.py" = ["T20"]
 # Pytest assertions express test expectations, not application security checks.
 # Expected values are literal test data; Respo sources use en dashes as separators.
 "tests/**/*.py" = ["S101", "PLR2004", "RUF001"]
