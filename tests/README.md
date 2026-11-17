@@ -41,6 +41,13 @@ browser navigation. Teardown saves both log streams under
 `test-results/container-logs/` and removes the test container even after a failure.
 The normal backend above remains the default when no image is specified.
 
+Release jobs additionally use `--release-results <file.json>`. The collector counts
+selected test identities, failures across all phases, skips and xfails/xpasses;
+`python -m scripts.release verify-tests <file.json>` requires a positive collection
+with every selected test passed and exit status zero. Coverage remains a separate
+80% gate. Release architecture tests and registry promotion are described in
+[docker/RELEASE.md](../docker/RELEASE.md).
+
 In a browser test, request `app_page: Page` instead of `page: Page` and remove any
 hardcoded `page.goto(...)`. The `app_page` fixture already opens the application.
 Request `app_url` for its address or `recipe_data` for this test's data directory

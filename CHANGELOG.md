@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.11.1] - Unreleased
+
+- Gate main image publication on quality/security checks and complete passing
+  unit/browser suites for both AMD64 and ARM64, including startup and data persistence.
+- Transfer tested images without rebuilding; publish immutable version/commit tags
+  and promote stable only after validation, with serialized stale-candidate protection.
+- Skip documentation/version-only image releases and document GHCR authentication,
+  Raspberry Pi deployment, persistent data, updates and rollback precautions.
+
 ## [1.11.0] - Unreleased
 
 - Build fresh Respo collections from PDF folders with explicit portion aliases,

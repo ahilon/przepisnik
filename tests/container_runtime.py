@@ -10,7 +10,7 @@ from sys import platform
 from time import monotonic, sleep
 from uuid import uuid4
 
-from command_runner import CommandRunner
+from scripts.command_runner import CommandRunner
 
 from przepisnik.constants import IPV4_LOOPBACK, IPV4_WILDCARD, PROJECT_NAME
 

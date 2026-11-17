@@ -13,6 +13,7 @@ from threading import Thread
 import pytest
 from container_runtime import ContainerApplication
 from playwright.sync_api import Page
+from release_results import ReleaseResults
 
 from przepisnik.constants import IPV4_LOOPBACK
 from przepisnik.core.migration import migrate_json
@@ -33,6 +34,22 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--container-image",
         help="Run isolated application containers from this already built Linux image",
     )
+    parser.addoption("--release-results", help="Write strict selected-test outcome counts to JSON")
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Enable machine-readable release results only when requested.
+
+    Args:
+        config: Current pytest invocation settings.
+
+    Returns:
+        None: Registers a fresh results collector for the selected invocation.
+    """
+    output = config.getoption("--release-results")
+    if output:
+        config.pluginmanager.register(ReleaseResults(Path(str(output))), "release-results")
+    return None
 
 
 @pytest.fixture(scope="session")

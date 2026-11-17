@@ -4,9 +4,10 @@ The default `docker/Dockerfile` target is `app`: an instance image without sampl
 recipes. The explicit `demo` target adds the versioned sample collection. Both use
 the same installed application/runtime layer and non-root user (UID/GID 10001).
 
-The Docker workflow builds and checks these images on GitHub Actions runners for
-matching pull requests and manual dispatch. It does not publish images, create
-stable tags or validate ARM64 yet. Playwright runs against the built instance image.
+The Docker workflow checks demo and instance images on matching pull requests.
+The separate [release workflow](RELEASE.md) validates both AMD64/ARM64 and publishes
+tested production images to GHCR after merge to main. Playwright runs against the
+built instance image. Personal data remains outside every distributable image.
 
 ## Configure an instance
 
@@ -96,8 +97,9 @@ point Actions jobs at a real instance or its backups.
 6. Removes only the runner's explicitly named CI project and volume after the job.
 
 Without `--container-image`, `tests/e2e` starts its own Python server; see
-[tests/README.md](../tests/README.md) for backend selection. A later phase adds
-architecture coverage and tested-image promotion to GHCR. The workflow is
+[tests/README.md](../tests/README.md) for backend selection. The separate
+[release pipeline](RELEASE.md) handles architecture coverage and GHCR promotion.
+The PR Docker workflow is
 path-filtered (including tests), so its jobs
 remain optional PR checks; unfiltered quality/security checks remain merge gates.
 
