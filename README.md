@@ -22,6 +22,10 @@ is stored in an ordinary directory that you can back up and move to another inst
   differences. Compare variants without keeping separate, disconnected collections.
 - **Cook for the number of people you need.** Change the serving count to scale
   known ingredient quantities and nutrition. The original recipe stays intact.
+- **Cook together with Wspólne.** The default view combines one female and one male
+  serving when products, compatible units and preparation steps match. Differences
+  disable the shared view with a short notice; individual variants remain available.
+  Shared quantities also carry through to the shopping list and its PDF export.
 - **Build one shopping list.** Add ingredients using the selected portions, combine
   matching products with compatible units, add custom items and tick off what you
   already have. Export products still to buy with **Eksportuj do PDF**, using your
