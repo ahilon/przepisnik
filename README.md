@@ -339,8 +339,16 @@ incoming draft for review with `recipes show`.
   `parsers/registry.py`. Other sources are extracted by the agent skill
   (`.agents/skills/przepisnik`) and added with `przepisnik add`. Code parsers inherit
   the abstract `RecipeParser` base class; recipe details label Respo sources.
-- `adapters/` - file format readers (PDF via PyMuPDF).
+- `adapters/` - file format readers (PDF via pypdf; embedded photos decoded with Pillow).
 - `web/` - local HTTP routes and bundled interface; reads use the same store and filters.
+
+## License
+
+The project source code is licensed under the [MIT License](LICENSE).
+Third-party dependencies retain their own licenses and copyright notices.
+The software license does not grant rights to recipes, photographs or PDFs
+imported by users. Demo content provenance is documented in
+[docker/demo/ASSETS.md](docker/demo/ASSETS.md).
 
 ## Developer guide
 

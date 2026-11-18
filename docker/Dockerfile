@@ -1,5 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.12.15 AS uv
 FROM python:3.12-slim AS runtime
+LABEL org.opencontainers.image.licenses="MIT"
 
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
@@ -8,7 +9,7 @@ ENV UV_LINK_MODE=copy \
     PRZEPISNIK_DATA=/data \
     PRZEPISNIK_CONFIG=/app/docker/server.toml
 WORKDIR /app
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
 RUN uv sync --locked --no-dev --no-editable
 RUN groupadd --gid 10001 app && useradd --uid 10001 --gid app --no-create-home app \

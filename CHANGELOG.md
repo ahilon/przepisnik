@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [1.11.2] - Unreleased
+
+- Replace PyMuPDF with pypdf and Pillow while preserving Respo text positions,
+  embedded photos, transparency and original JPEG data without recompression.
+- Reassemble adjacent text spans across font changes so split meal headers and
+  numbered steps import correctly; add independent synthetic PDF regression fixtures.
+- Replace the six demo recipes with newly authored AI-assisted samples and images,
+  document their provenance and omit unverified nutrition values.
+- License the project under MIT, include the license in packages and container
+  images, and document the distinction between code and imported recipe content.
+
 ## [1.11.1] - Unreleased
 
 - Gate main image publication on quality/security checks and complete passing

@@ -1,29 +1,34 @@
 {
   "schema_version": 2,
   "id": "burgery-z-grilla",
-  "title": "Burgery z grilla",
+  "title": "Burger wołowy z cheddarem i sosem jogurtowo-musztardowym",
   "version": 1,
   "image": "image.png",
   "steps": [
-    "W misce mieszamy mięso z przyprawami. Dodajemy czosnek przeciśnięty przez praskę, ponownie mieszamy. Formujemy burgery.",
-    "W miseczce mieszamy składniki sosu.",
-    "Pomidora kroimy na plasterki.",
-    "Rozgrzewamy grilla lub patelnię grillową i smażymy burgery po ok. 5 minut z jednej i drugiej strony. Po tym czasie możemy delikatnie naciąć burgera i sprawdzić, czy mięso w środku ma jasny kolor. W razie potrzeby grillujemy burgera jeszcze przez chwilkę.",
-    "Pod koniec grillowania burgera umieszczamy na nim ser, by się rozpuścił.",
-    "Na połowie pieczywa układamy sałatę, burger z serem, pomidora, polewamy sosem i przykrywamy drugą połową bułki."
+    "Jogurt wymieszaj z musztardą i pieprzem. Pokrój pomidor oraz ogórek kiszony, a liście sałaty umyj i osusz.",
+    "Z mielonej wołowiny uformuj płaski kotlet, nieco szerszy od bułki. Posól go tuż przed smażeniem.",
+    "Usmaż kotlet na dobrze rozgrzanej patelni grillowej posmarowanej olejem. Obracaj w miarę potrzeby; mięso mielone musi być w pełni usmażone, także w środku.",
+    "Pod koniec smażenia połóż cheddar na kotlecie i poczekaj, aż ser zmięknie. Po kontakcie z surowym mięsem umyj ręce i użyj czystych przyborów do składania burgera.",
+    "Przekrojoną bułkę podpiecz na suchej części patelni. Posmaruj sosem, dodaj sałatę, mięso z serem, pomidor i ogórek, a następnie przykryj górą bułki."
   ],
-  "notes": [],
+  "notes": [
+    "Przykład demonstracyjny opracowany z pomocą AI; zdjęcie jest ilustracją wygenerowaną przez AI.",
+    "Wartości odżywcze nie zostały wyliczone. Oznaczenia wariantów służą prezentacji aplikacji i nie są zaleceniem dietetycznym."
+  ],
   "meal_types": [
     "lunch"
   ],
-  "dish_types": [],
+  "dish_types": [
+    "main"
+  ],
   "user": {
     "favorite": false,
+    "hidden": false,
     "notes": "",
     "tags": [],
     "meal_types": null,
     "dish_types": null,
-    "preparation_minutes": null
+    "preparation_minutes": 25
   },
   "created_at": null,
   "updated_at": null,
@@ -31,160 +36,112 @@
   "variants": {
     "male": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 571.0,
-        "protein_g": 36.0,
-        "fat_g": 23.0,
-        "carbs_g": 57.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Bułka grahamka",
-          "amount": 1.0,
-          "unit": "sztuka",
-          "metric_amount": 70.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Bułka grahamka – 1 sztuka (70 g)"
-        },
-        {
-          "name": "Mięso mielone z kurczaka",
+          "name": "Bułka burgerowa z sezamem",
           "amount": null,
           "unit": null,
-          "metric_amount": 100.0,
+          "metric_amount": 90,
           "metric_unit": "g",
           "group": null,
-          "raw": "Mięso mielone z kurczaka – 100 g"
+          "raw": "Bułka burgerowa z sezamem — 90 g"
         },
         {
-          "name": "Papryka wędzona",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 1.5,
+          "name": "Wołowina mielona",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 160,
           "metric_unit": "g",
           "group": null,
-          "raw": "Papryka wędzona – 0.5 łyżeczki (1.5 g)"
-        },
-        {
-          "name": "Papryka ostra suszona",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 1.5,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Papryka ostra suszona – 0.5 łyżeczki (1.5 g)"
-        },
-        {
-          "name": "Zioła prowansalskie",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 1.5,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Zioła prowansalskie – 0.5 łyżeczki (1.5 g)"
-        },
-        {
-          "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Sól – 1 szczypta (0.25 g)"
-        },
-        {
-          "name": "Czosnek świeży",
-          "amount": 1.0,
-          "unit": "ząbek",
-          "metric_amount": 6.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Czosnek świeży – 1 ząbek (6 g)"
+          "raw": "Wołowina mielona — 160 g"
         },
         {
           "name": "Ser cheddar",
-          "amount": 2.0,
-          "unit": "plastry",
-          "metric_amount": 30.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Ser cheddar – 2 plastry (30 g)"
-        },
-        {
-          "name": "Miks sałat",
           "amount": null,
           "unit": null,
-          "metric_amount": 25.0,
+          "metric_amount": 25,
           "metric_unit": "g",
           "group": null,
-          "raw": "Miks sałat – 25 g"
+          "raw": "Ser cheddar — 25 g"
         },
         {
           "name": "Pomidor",
-          "amount": 2.0,
-          "unit": "plastry",
-          "metric_amount": 40.0,
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60,
           "metric_unit": "g",
           "group": null,
-          "raw": "Pomidor – 2 plastry (40 g)"
+          "raw": "Pomidor — 60 g"
         },
         {
-          "name": "Miód",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 12.0,
+          "name": "Ogórek kiszony",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 35,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Miód – 1 łyżeczka (12 g)"
+          "group": null,
+          "raw": "Ogórek kiszony — 35 g"
         },
         {
-          "name": "Majonez",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 5.0,
+          "name": "Sałata",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 20,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Majonez – 0.5 łyżeczki (5 g)"
+          "group": null,
+          "raw": "Sałata — 20 g"
         },
         {
-          "name": "Musztarda",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 10.0,
+          "name": "Jogurt naturalny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 30,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Musztarda – 1 łyżeczka (10 g)"
+          "group": null,
+          "raw": "Jogurt naturalny — 30 g"
         },
         {
-          "name": "Ocet jabłkowy",
-          "amount": 0.5,
-          "unit": "łyżki",
-          "metric_amount": 5.0,
+          "name": "Musztarda ziarnista",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 8,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Ocet jabłkowy – 0.5 łyżki (5 g)"
+          "group": null,
+          "raw": "Musztarda ziarnista — 8 g"
+        },
+        {
+          "name": "Olej rzepakowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Olej rzepakowy — 5 g"
         },
         {
           "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "amount": null,
+          "unit": null,
+          "metric_amount": 0.6,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Sól – 1 szczypta (0.25 g)"
+          "group": null,
+          "raw": "Sól — 0.6 g"
         },
         {
-          "name": "Pieprz czarny",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Pieprz czarny mielony",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 0.3,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+          "group": null,
+          "raw": "Pieprz czarny mielony — 0.3 g"
         }
       ],
       "steps": null,
-      "source": null
+      "source": {
+        "parser": "agent"
+      }
     }
   }
 }

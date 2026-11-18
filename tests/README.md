@@ -95,7 +95,9 @@ uv run pytest tests/e2e --tracing retain-on-failure
 
 Unit tests in `tests/unit` need no browser or server. They build domain objects
 with the helpers in `tests/unit/factories.py`, use temporary SQLite databases and
-generate small PDF files with PyMuPDF.
+generate small PDF files with a standard-library PDF writer and explicit Unicode
+maps. Pillow supplies synthetic image samples; no external fonts or PDF sources
+are required. Adapter regressions also use pypdf to construct transformed pages.
 
 ```powershell
 # Unit tests only
