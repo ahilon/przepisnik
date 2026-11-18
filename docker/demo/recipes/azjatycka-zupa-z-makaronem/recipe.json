@@ -1,28 +1,35 @@
 {
   "schema_version": 2,
   "id": "azjatycka-zupa-z-makaronem",
-  "title": "Azjatycka zupa z makaronem",
+  "title": "Zupa kokosowa z tofu, limonką i makaronem ryżowym",
   "version": 1,
   "image": "image.png",
   "steps": [
-    "Makaron przygotowujemy według instrukcji na opakowaniu.",
-    "Blendujemy: imbir, kolendrę świeżą, skórkę z cytryny, papryczkę chilli, sól oraz olej.",
-    "Zblendowaną pastę podsmażamy w rondelku. Dodajemy cynamon, drobno posiekany czosnek, pokrojoną w paski paprykę oraz posiekaną cebulę. Całość podsmażamy 3 minuty, dodajemy mleczko kokosowe oraz bulion warzywny, gotujemy 5 minut.",
-    "Udko kurczęce kroimy w cienkie paski i dodajemy do gotującej się zupy. Gotujemy jeszcze przez 6 minut, dodajemy sos sojowy oraz sok z cytryny. Doprawiamy solą.",
-    "Zupę podajemy z makaronem. Smacznego!"
+    "Pokrój tofu w kostkę, pieczarki w plasterki, a marchew obieraczką w cienkie wstążki. Oddziel jasne łodygi pak choi od liści.",
+    "Na dnie garnka rozgrzej olej. Podsmaż tofu, obracając kostki, aż nabiorą złotego koloru, po czym przełóż je na talerz.",
+    "Do tego samego garnka wrzuć pieczarki, drobno posiekany imbir oraz jasne części pak choi. Mieszaj na średnim ogniu przez około 3 minuty.",
+    "Wlej wodę i mleczko kokosowe. Dodaj sos sojowy oraz marchew i gotuj łagodnie przez 5 minut.",
+    "Przygotuj makaron zgodnie ze wskazówkami producenta. Dodaj go do garnka razem z tofu oraz liśćmi pak choi; podgrzewaj, aż liście zmiękną.",
+    "Zdejmij z ognia, dopraw sokiem z limonki i posyp pokrojoną dymką, kolendrą oraz sezamem."
   ],
-  "notes": [],
+  "notes": [
+    "Przykład demonstracyjny opracowany z pomocą AI; zdjęcie jest ilustracją wygenerowaną przez AI.",
+    "Wartości odżywcze nie zostały wyliczone. Oznaczenia wariantów służą prezentacji aplikacji i nie są zaleceniem dietetycznym."
+  ],
   "meal_types": [
     "lunch"
   ],
-  "dish_types": [],
+  "dish_types": [
+    "soup"
+  ],
   "user": {
     "favorite": true,
+    "hidden": false,
     "notes": "",
     "tags": [],
     "meal_types": null,
     "dish_types": null,
-    "preparation_minutes": null
+    "preparation_minutes": 25
   },
   "created_at": null,
   "updated_at": null,
@@ -30,166 +37,139 @@
   "variants": {
     "female": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 589.0,
-        "protein_g": 32.0,
-        "fat_g": 22.0,
-        "carbs_g": 71.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Makaron ryżowy",
+          "name": "Tofu naturalne",
           "amount": null,
           "unit": null,
-          "metric_amount": 60.0,
+          "metric_amount": 130,
           "metric_unit": "g",
           "group": null,
-          "raw": "Makaron ryżowy – 60 g"
+          "raw": "Tofu naturalne — 130 g"
         },
         {
-          "name": "Papryka czerwona",
-          "amount": 1.0,
-          "unit": "sztuka",
-          "metric_amount": 170.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Papryka czerwona – 1 sztuka (170 g)"
-        },
-        {
-          "name": "Mleczko kokosowe 12%",
-          "amount": 3.0,
-          "unit": "łyżki",
-          "metric_amount": 60.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Mleczko kokosowe 12% – 3 łyżki (60 g)"
-        },
-        {
-          "name": "Udo kurczaka (bez skóry i kości)",
+          "name": "Makaron ryżowy suchy",
           "amount": null,
           "unit": null,
-          "metric_amount": 120.0,
+          "metric_amount": 55,
           "metric_unit": "g",
           "group": null,
-          "raw": "Udo kurczaka (bez skóry i kości) – 120 g"
+          "raw": "Makaron ryżowy suchy — 55 g"
         },
         {
-          "name": "Imbir",
-          "amount": 1.0,
-          "unit": "plaster",
-          "metric_amount": 5.0,
-          "metric_unit": "g",
+          "name": "Mleczko kokosowe",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 100,
+          "metric_unit": "ml",
           "group": null,
-          "raw": "Imbir – 1 plaster (5 g)"
+          "raw": "Mleczko kokosowe — 100 ml"
         },
         {
-          "name": "Bulion warzywny (po rozrobieniu ze słoiczka)",
-          "amount": 1.0,
-          "unit": "szklanka",
-          "metric_amount": 250.0,
-          "metric_unit": "g",
+          "name": "Woda",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 280,
+          "metric_unit": "ml",
           "group": null,
-          "raw": "Bulion warzywny (po rozrobieniu ze słoiczka) – 1 szklanka (250 g)"
+          "raw": "Woda — 280 ml"
         },
         {
-          "name": "Papryczka chilli",
-          "amount": 0.5,
-          "unit": "szt.",
-          "metric_amount": 10.0,
+          "name": "Pieczarki",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 70,
           "metric_unit": "g",
           "group": null,
-          "raw": null
+          "raw": "Pieczarki — 70 g"
         },
         {
-          "name": "Cebula",
-          "amount": 0.5,
-          "unit": "sztuki",
-          "metric_amount": 40.0,
+          "name": "Marchew",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60,
           "metric_unit": "g",
           "group": null,
-          "raw": "Cebula – 0.5 sztuki (40 g)"
+          "raw": "Marchew — 60 g"
         },
         {
-          "name": "Skórka z cytryny",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 3.0,
+          "name": "Pak choi",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 80,
           "metric_unit": "g",
           "group": null,
-          "raw": "Skórka z cytryny – 1 łyżeczka (3 g)"
+          "raw": "Pak choi — 80 g"
         },
         {
-          "name": "Sok z cytryny",
-          "amount": 2.0,
-          "unit": "łyżki",
-          "metric_amount": 12.0,
+          "name": "Imbir świeży",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 5,
           "metric_unit": "g",
           "group": null,
-          "raw": "Sok z cytryny – 2 łyżki (12 g)"
-        },
-        {
-          "name": "Kolendra świeża",
-          "amount": 0.5,
-          "unit": "garści",
-          "metric_amount": 2.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Kolendra świeża – 0.5 garści (2 g)"
-        },
-        {
-          "name": "Czosnek świeży",
-          "amount": 1.0,
-          "unit": "ząbek",
-          "metric_amount": 6.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Czosnek świeży – 1 ząbek (6 g)"
-        },
-        {
-          "name": "Olej rzepakowy",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 5.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Olej rzepakowy – 1 łyżeczka (5 g)"
-        },
-        {
-          "name": "Cynamon mielony",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 2.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Cynamon mielony – 0.5 łyżeczki (2 g)"
+          "raw": "Imbir świeży — 5 g"
         },
         {
           "name": "Sos sojowy",
-          "amount": 1.0,
-          "unit": "łyżka",
-          "metric_amount": 10.0,
-          "metric_unit": "g",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 12,
+          "metric_unit": "ml",
           "group": null,
-          "raw": "Sos sojowy – 1 łyżka (10 g)"
+          "raw": "Sos sojowy — 12 ml"
         },
         {
-          "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Olej rzepakowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 6,
           "metric_unit": "g",
           "group": null,
-          "raw": "Sól – 1 szczypta (0.25 g)"
+          "raw": "Olej rzepakowy — 6 g"
+        },
+        {
+          "name": "Sok z limonki",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 12,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Sok z limonki — 12 ml"
+        },
+        {
+          "name": "Dymka",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 8,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Dymka — 8 g"
+        },
+        {
+          "name": "Kolendra świeża",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 3,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Kolendra świeża — 3 g"
+        },
+        {
+          "name": "Sezam",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 2,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Sezam — 2 g"
         }
       ],
-      "steps": [
-        "Makaron przygotowujemy według instrukcji na opakowaniu.",
-        "Blendujemy: imbir, kolendrę świeżą, skórkę z cytryny, papryczkę chilli, sól oraz olej.",
-        "Zblendowaną pastę podsmażamy w rondelku. Dodajemy cynamon, drobno posiekany czosnek, pokrojoną w paski paprykę oraz posiekaną cebulę. Całość podsmażamy 3 minuty, dodajemy mleczko kokosowe oraz bulion warzywny, gotujemy 5 minut.",
-        "Udko kurczęce kroimy w cienkie paski i dodajemy do gotującej się zupy. Gotujemy jeszcze przez 6 minut, dodajemy sos sojowy oraz sok z cytryny. Doprawiamy solą.",
-        "Zupę podajemy z makaronem. Smacznego!"
-      ],
-      "source": null
+      "steps": null,
+      "source": {
+        "parser": "agent"
+      }
     }
   }
 }

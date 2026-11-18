@@ -1,33 +1,35 @@
 {
   "schema_version": 2,
   "id": "butter-chicken",
-  "title": "Butter chicken",
+  "title": "Kurczak w łagodnym sosie pomidorowo-maślanym z ryżem",
   "version": 1,
   "image": "image.png",
   "steps": [
-    "Ryż jaśminowy gotujemy według instrukcji na opakowaniu.",
-    "Kroimy kurczaka w dużą kostkę (ok. 3 cm).",
-    "Do miski dodajemy jogurt naturalny, przeciśnięty przez praskę czosnek, starty imbir, sok z cytryny, kolendrę suszoną, kumin, słodką paprykę, ostrą paprykę oraz sól, dokładnie mieszamy. Dodajemy mięso, dokładnie obtaczamy w marynacie. Przykrywamy i odkładamy do lodówki na minimum 1 godzinę (może być cała noc).",
-    "Obieramy cebulę i kroimy ją w drobną kostkę. Czosnek drobno siekamy lub ścieramy.",
-    "Na dużej patelni rozgrzewamy ⅔ masła na średnim ogniu. Wrzucamy cebulę i smażymy bez przykrycia ok. 5 minut, aż się zeszkli. Dodajemy czosnek, smażymy kolejne 2 minuty.",
-    "Wlewamy passatę pomidorową, dodajemy garam masalę, erytrol, sól oraz pieprz według własnego uznania. Mieszamy, zmniejszamy ogień i gotujemy pod przykryciem przez 10 minut, aż sos zgęstnieje i nabierze aromatu.",
-    "W międzyczasie na drugiej patelni smażymy zamarynowanego kurczaka na średnim ogniu bez przykrycia, aż będzie lekko zrumieniony i w pełni usmażony (ok. 8–10 minut). Po przekrojeniu mięso powinno być jasne w środku.",
-    "Gotowe kawałki kurczaka przekładamy do sosu pomidorowego. Dolewamy trochę gorącej wody, jeśli sos jest zbyt gęsty. Jeśli natomiast sos jest zbyt płynny, zwiększamy moc palnika i gotujemy bez przykrycia do odparowania nadmiaru płynu.",
-    "Dodajemy śmietankę oraz pozostałe masło, mieszamy i gotujemy całość na małym ogniu przez 5 minut, aż wszystko się połączy i zrobi się kremowe. Próbujemy i doprawiamy erytrolem, solą oraz pieprzem według uznania, jeśli sos jest zbyt kwaśny.",
-    "Gotowe danie podajemy z ryżem jaśminowym."
+    "Ryż ugotuj według instrukcji na opakowaniu. W tym czasie posiekaj cebulę, czosnek i imbir, a kurczaka pokrój w niewielką kostkę.",
+    "Na patelni rozgrzej olej i podsmaż kurczaka do lekkiego zrumienienia. Przełóż go do miski, nie traktując jeszcze jako gotowego do jedzenia.",
+    "Na tej samej patelni rozpuść masło. Dodaj cebulę, a gdy zmięknie, dorzuć czosnek, imbir, garam masalę i słodką paprykę. Mieszaj przez około pół minuty.",
+    "Wlej passatę oraz wodę i zagotuj. Włóż kurczaka z powrotem do sosu, przykryj i duś na małym ogniu do całkowitego ugotowania mięsa.",
+    "Wmieszaj śmietankę i podgrzej bez gwałtownego gotowania. Dopraw solą; jeśli sos nadmiernie zgęstnieje, dodaj odrobinę wody.",
+    "Podaj z ryżem, posypując świeżą kolendrą. Do nakładania gotowego dania użyj przyborów, które nie miały kontaktu z surowym mięsem."
   ],
-  "notes": [],
+  "notes": [
+    "Przykład demonstracyjny opracowany z pomocą AI; zdjęcie jest ilustracją wygenerowaną przez AI.",
+    "Wartości odżywcze nie zostały wyliczone. Oznaczenia wariantów służą prezentacji aplikacji i nie są zaleceniem dietetycznym."
+  ],
   "meal_types": [
     "lunch"
   ],
-  "dish_types": [],
+  "dish_types": [
+    "main"
+  ],
   "user": {
     "favorite": false,
+    "hidden": false,
     "notes": "",
     "tags": [],
     "meal_types": null,
     "dish_types": null,
-    "preparation_minutes": null
+    "preparation_minutes": 30
   },
   "created_at": null,
   "updated_at": null,
@@ -35,196 +37,139 @@
   "variants": {
     "female": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 609.0,
-        "protein_g": 44.0,
-        "fat_g": 24.0,
-        "carbs_g": 56.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Mięso z piersi kurczaka",
+          "name": "Pierś z kurczaka",
           "amount": null,
           "unit": null,
-          "metric_amount": 150.0,
+          "metric_amount": 155,
           "metric_unit": "g",
           "group": null,
-          "raw": "Mięso z piersi kurczaka – 150 g"
+          "raw": "Pierś z kurczaka — 155 g"
         },
         {
-          "name": "Jogurt naturalny 2%",
-          "amount": 2.5,
-          "unit": "łyżki",
-          "metric_amount": 50.0,
+          "name": "Ryż basmati suchy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60,
           "metric_unit": "g",
-          "group": null,
-          "raw": "Jogurt naturalny 2% – 2.5 łyżki (50 g)"
-        },
-        {
-          "name": "Czosnek świeży",
-          "amount": 1.0,
-          "unit": "ząbek",
-          "metric_amount": 6.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Czosnek świeży – 1 ząbek (6 g)"
-        },
-        {
-          "name": "Imbir",
-          "amount": 0.5,
-          "unit": "plastra",
-          "metric_amount": 2.5,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Imbir – 0.5 plastra (2.5 g)"
-        },
-        {
-          "name": "Sok z cytryny",
-          "amount": 1.0,
-          "unit": "łyżka",
-          "metric_amount": 6.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Sok z cytryny – 1 łyżka (6 g)"
-        },
-        {
-          "name": "Kolendra suszona",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 1.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Kolendra suszona – 1 łyżeczka (1 g)"
-        },
-        {
-          "name": "Kumin",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 2.5,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Kumin – 0.5 łyżeczki (2.5 g)"
-        },
-        {
-          "name": "Papryka słodka",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 3.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Papryka słodka – 1 łyżeczka (3 g)"
-        },
-        {
-          "name": "Papryka ostra suszona",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 1.5,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Papryka ostra suszona – 0.5 łyżeczki (1.5 g)"
-        },
-        {
-          "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Sól – 1 szczypta (0.25 g)"
-        },
-        {
-          "name": "Masło extra",
-          "amount": 1.5,
-          "unit": "łyżeczki",
-          "metric_amount": 15.0,
-          "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Masło extra – 1.5 łyżeczki (15 g)"
-        },
-        {
-          "name": "Cebula",
-          "amount": 0.5,
-          "unit": "sztuki",
-          "metric_amount": 40.0,
-          "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Cebula – 0.5 sztuki (40 g)"
-        },
-        {
-          "name": "Czosnek świeży",
-          "amount": 1.0,
-          "unit": "ząbek",
-          "metric_amount": 6.0,
-          "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Czosnek świeży – 1 ząbek (6 g)"
+          "group": "Do podania",
+          "raw": "Ryż basmati suchy — 60 g"
         },
         {
           "name": "Passata pomidorowa",
-          "amount": 0.5,
-          "unit": "szklanki",
-          "metric_amount": 125.0,
+          "amount": null,
+          "unit": null,
+          "metric_amount": 160,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Passata pomidorowa – 0.5 szklanki (125 g)"
+          "group": null,
+          "raw": "Passata pomidorowa — 160 g"
         },
         {
-          "name": "Śmietanka 12%",
-          "amount": 3.0,
-          "unit": "łyżki",
-          "metric_amount": 50.0,
+          "name": "Cebula",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 55,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Śmietanka 12% – 3 łyżki (50 g)"
+          "group": null,
+          "raw": "Cebula — 55 g"
+        },
+        {
+          "name": "Czosnek",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Czosnek — 5 g"
+        },
+        {
+          "name": "Imbir świeży",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 4,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Imbir świeży — 4 g"
+        },
+        {
+          "name": "Masło",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 9,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Masło — 9 g"
+        },
+        {
+          "name": "Olej rzepakowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 5,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Olej rzepakowy — 5 g"
+        },
+        {
+          "name": "Śmietanka 18%",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 35,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Śmietanka 18% — 35 ml"
+        },
+        {
+          "name": "Woda",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Woda — 60 ml"
         },
         {
           "name": "Garam masala",
-          "amount": 0.5,
-          "unit": "łyżeczki",
-          "metric_amount": 2.5,
+          "amount": null,
+          "unit": null,
+          "metric_amount": 2,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Garam masala – 0.5 łyżeczki (2.5 g)"
+          "group": null,
+          "raw": "Garam masala — 2 g"
         },
         {
-          "name": "Erytrol",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 5.0,
+          "name": "Papryka słodka mielona",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 1,
           "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Erytrol – 1 łyżeczka (5 g)"
+          "group": null,
+          "raw": "Papryka słodka mielona — 1 g"
         },
         {
           "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
-          "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Sól – 1 szczypta (0.25 g)"
-        },
-        {
-          "name": "Pieprz czarny",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
-          "metric_unit": "g",
-          "group": "Sos",
-          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
-        },
-        {
-          "name": "Ryż jaśminowy",
           "amount": null,
           "unit": null,
-          "metric_amount": 40.0,
+          "metric_amount": 0.5,
           "metric_unit": "g",
-          "group": "Do podania",
-          "raw": "Ryż jaśminowy – 40 g"
+          "group": null,
+          "raw": "Sól — 0.5 g"
+        },
+        {
+          "name": "Kolendra świeża",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 3,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Kolendra świeża — 3 g"
         }
       ],
       "steps": null,
-      "source": null
+      "source": {
+        "parser": "agent"
+      }
     }
   }
 }

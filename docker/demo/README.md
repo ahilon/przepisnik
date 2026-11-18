@@ -16,15 +16,27 @@ docker/demo/recipes/<recipe-id>/
   image.png
 ```
 
-Fixtures are snapshots from the local collection with personal metadata, notes and
-source details removed. Startup copies the folders into a fresh demo volume and runs
-the existing `migrate-json` command to populate SQLite. SQLite remains the application's
-active store; fixture JSON files are not rewritten when editing in the UI.
+Recipe instructions and quantities were newly authored with AI assistance for this
+demo. The six food images were generated from text prompts without using the old
+photos as references. These are illustrative samples, not a validated meal plan;
+nutrition is deliberately unset rather than copied from the previous fixtures.
+The female/male labels demonstrate application variants, not dietary recommendations.
+See [asset provenance and image prompts](ASSETS.md) for the generation record.
+
+Recipe IDs remain stable because existing tests refer to them; the displayed titles,
+ingredients and instructions describe the new samples. No personal collection or
+source PDF is needed to generate or run this demo.
+
+Startup copies the folders into a fresh demo volume and runs the existing
+`migrate-json` command to populate SQLite. SQLite remains the application's active
+store; fixture JSON files are not rewritten when editing in the UI.
 
 The application runs as a non-root user. Only the local computer can access the
 published port. A dedicated named volume stores SQLite and images; the host `data/`
 directory and personal sources are excluded from the build context and never mounted.
-Restarting or rebuilding preserves manual edits. Fixture changes apply to fresh volumes.
+Restarting or rebuilding preserves manual edits and any previously seeded recipes.
+Rebuilding alone does not replace old sample text or photos in an existing volume.
+Fixture changes apply to fresh volumes.
 If upgrading from the previous single-JSON fixtures, use the reset commands below to
 load the recipe folders and photos. This deletes manual edits in the demo volume.
 
@@ -36,7 +48,7 @@ docker compose -f docker/docker-compose.yaml logs app
 # Stop containers while preserving demo data.
 docker compose -f docker/docker-compose.yaml down
 
-# Delete this environment's demo data, then recreate the six original recipes.
+# Delete this environment's demo data, then load the six current sample recipes.
 docker compose -f docker/docker-compose.yaml down --volumes
 docker compose -f docker/docker-compose.yaml up --build -d --wait
 ```

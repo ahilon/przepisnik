@@ -1,16 +1,18 @@
 [project]
 name = "przepisnik"
-version = "1.11.1"
+version = "1.11.2"
 description = "Build a recipe knowledge base from diet-plan PDFs and other sources."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Pawel", email = "ziela111@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.14.1",
-    # 2.x pulls onnxruntime/numpy/pymupdf4llm (~100 MB) that this tool does not use.
-    "pymupdf>=1.26,<2",
+    "pypdf>=7.1,<8",
+    "pillow>=13,<14",
 ]
 
 [project.scripts]
@@ -70,16 +72,6 @@ strict = true
 warn_unreachable = true
 mypy_path = ["src", "tests"]
 plugins = ["pydantic.mypy"]
-
-[[tool.mypy.overrides]]
-# PyMuPDF type hints are incomplete; untyped calls are confined to the adapter module.
-module = ["przepisnik.adapters.pdf"]
-disallow_untyped_calls = false
-
-[[tool.mypy.overrides]]
-# Unit tests build PDF fixtures with PyMuPDF directly.
-module = ["factories", "test_pdf_adapter"]
-disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pymupdf
+from pdf_fixtures import PdfFixtureWriter
 
 from przepisnik.core.models import (
     Ingredient,
@@ -138,15 +138,4 @@ def persist(store: SqliteStore, item: Recipe) -> Recipe:
 
 def write_pdf(path: Path, pages: Sequence[Sequence[str]], *, image: bytes | None = None) -> Path:
     """Write a PDF with one text line per row and an optional image next to the first line."""
-    document = pymupdf.open()
-    font = pymupdf.Font("cjk")  # Built-in font covering Polish letters and the en dash.
-    for lines in pages:
-        page = document.new_page()
-        page.insert_font(fontname="F0", fontbuffer=font.buffer)
-        for row, text in enumerate(lines):
-            page.insert_text((40, 40 + 18 * row), text, fontname="F0", fontsize=10)
-        if image is not None:
-            page.insert_image(pymupdf.Rect(400, 30, 440, 70), stream=image)
-    document.save(path)
-    document.close()
-    return path
+    return PdfFixtureWriter().write(path, pages, image)

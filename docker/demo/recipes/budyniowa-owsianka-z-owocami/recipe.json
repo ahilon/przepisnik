@@ -1,27 +1,33 @@
 {
   "schema_version": 2,
   "id": "budyniowa-owsianka-z-owocami",
-  "title": "Budyniowa owsianka z owocami",
+  "title": "Waniliowa owsianka z malinami, bananem i orzechami",
   "version": 1,
   "image": "image.png",
   "steps": [
-    "Płatki umieszczamy w garnuszku, zalewamy mlekiem i zagotowujemy. Gotujemy do miękkości przez ok. 5-7 minut na małej mocy palnika. W razie potrzeby dolewamy stopniowo gorącą wodę, aby uzyskać owsiankę o preferowanej konsystencji. Uważamy, żeby owsianka nie była zbyt gęsta, ponieważ potem dodajemy budyń.",
-    "Budyń mieszamy ze 100 ml wody. Dodajemy do gotujących się płatków, energicznie mieszamy, gotujemy całość 1-2 minuty do momentu zgęstnienia budyniu. Jeśli na tym etapie owsianka jest za gęsta, możemy dolewać stopniowo gorącą wodę do uzyskania ulubionej gęstości.",
-    "Dodajemy odżywkę białkową, mieszamy.",
-    "Owsiankę podajemy z masłem orzechowym oraz malinami."
+    "Do małego rondla wsyp płatki i wlej większość mleka. Podgrzewaj na niewielkim ogniu, mieszając, aż płatki zmiękną.",
+    "W pozostałym zimnym mleku dokładnie rozmieszaj skrobię kukurydzianą oraz ekstrakt waniliowy.",
+    "Wlej mieszankę do gotujących się płatków cienkim strumieniem. Mieszaj przez około minutę, aż owsianka zgęstnieje, i zdejmij rondel z ognia.",
+    "Przełóż owsiankę do miski. Ułóż maliny oraz plasterki banana, dodaj posiekane orzechy i skrop syropem klonowym."
   ],
-  "notes": [],
+  "notes": [
+    "Przykład demonstracyjny opracowany z pomocą AI; zdjęcie jest ilustracją wygenerowaną przez AI.",
+    "Wartości odżywcze nie zostały wyliczone. Oznaczenia wariantów służą prezentacji aplikacji i nie są zaleceniem dietetycznym."
+  ],
   "meal_types": [
     "breakfast"
   ],
-  "dish_types": [],
+  "dish_types": [
+    "main"
+  ],
   "user": {
     "favorite": false,
+    "hidden": false,
     "notes": "",
     "tags": [],
     "meal_types": null,
     "dish_types": null,
-    "preparation_minutes": null
+    "preparation_minutes": 12
   },
   "created_at": null,
   "updated_at": null,
@@ -29,70 +35,85 @@
   "variants": {
     "female": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 502.0,
-        "protein_g": 32.0,
-        "fat_g": 16.0,
-        "carbs_g": 63.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Płatki owsiane górskie",
-          "amount": 3.0,
-          "unit": "łyżki",
-          "metric_amount": 30.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Płatki owsiane górskie – 3 łyżki (30 g)"
-        },
-        {
-          "name": "Mleko 1,5%",
-          "amount": 0.5,
-          "unit": "szklanki",
-          "metric_amount": 125.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Mleko 1,5% – 0.5 szklanki (125 g)"
-        },
-        {
-          "name": "Budyń w proszku (bez cukru)",
-          "amount": 4.0,
-          "unit": "łyżeczki",
-          "metric_amount": 20.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Budyń w proszku (bez cukru) – 4 łyżeczki (20 g)"
-        },
-        {
-          "name": "Odżywka białkowa",
-          "amount": 2.5,
-          "unit": "łyżki",
-          "metric_amount": 25.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Odżywka białkowa – 2.5 łyżki (25 g)"
-        },
-        {
-          "name": "Masło orzechowe",
-          "amount": 2.0,
-          "unit": "łyżeczki",
-          "metric_amount": 20.0,
-          "metric_unit": "g",
-          "group": null,
-          "raw": "Masło orzechowe – 2 łyżeczki (20 g)"
-        },
-        {
-          "name": "Maliny świeże lub mrożone",
+          "name": "Płatki owsiane",
           "amount": null,
           "unit": null,
-          "metric_amount": 100.0,
+          "metric_amount": 55,
           "metric_unit": "g",
           "group": null,
-          "raw": "Maliny świeże lub mrożone – 100 g"
+          "raw": "Płatki owsiane — 55 g"
+        },
+        {
+          "name": "Mleko",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 220,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Mleko — 220 ml"
+        },
+        {
+          "name": "Skrobia kukurydziana",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 6,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Skrobia kukurydziana — 6 g"
+        },
+        {
+          "name": "Ekstrakt waniliowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 2,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Ekstrakt waniliowy — 2 ml"
+        },
+        {
+          "name": "Maliny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 70,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Maliny — 70 g"
+        },
+        {
+          "name": "Banan obrany",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 75,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Banan obrany — 75 g"
+        },
+        {
+          "name": "Orzechy laskowe",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 12,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Orzechy laskowe — 12 g"
+        },
+        {
+          "name": "Syrop klonowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 8,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Syrop klonowy — 8 g"
         }
       ],
       "steps": null,
-      "source": null
+      "source": {
+        "parser": "agent"
+      }
     }
   }
 }

@@ -1,28 +1,33 @@
 {
   "schema_version": 2,
   "id": "bajgiel-z-domowym-twarozkiem",
-  "title": "Bajgiel z domowym twarożkiem",
+  "title": "Bajgiel z twarożkiem szczypiorkowym i rzodkiewką",
   "version": 1,
   "image": "image.png",
   "steps": [
-    "Bajgiel przekrajamy wzdłuż na dwie równe części.",
-    "Twaróg rozgniatamy widelcem w miseczce. Dodajemy jogurt i mieszamy do uzyskania kremowej konsystencji. Doprawiamy solą oraz pieprzem według własnego uznania",
-    "Szczypiorek drobno siekamy. Pomidora kroimy na mniejsze kawałki.",
-    "Bajgla smarujemy przygotowanym twarożkiem. Na wierzchu układamy pomidora, następnie posypujemy szczypiorkiem.",
-    "Bajgiel można pozostawić otwarty lub złożyć w formę kanapki."
+    "Przekrój bajgiel poziomo i krótko podgrzej obie części na suchej patelni, stroną przecięcia do dołu.",
+    "W miseczce rozgnieć twaróg widelcem. Połącz z jogurtem, posiekanym szczypiorkiem, sokiem z cytryny i pieprzem.",
+    "Rzodkiewkę oraz ogórek pokrój w cienkie plasterki. Umyty szpinak osusz.",
+    "Na dolnej części bajgla rozłóż szpinak i pastę twarogową, a następnie plasterki warzyw. Przykryj drugą częścią pieczywa i podawaj od razu."
   ],
-  "notes": [],
+  "notes": [
+    "Przykład demonstracyjny opracowany z pomocą AI; zdjęcie jest ilustracją wygenerowaną przez AI.",
+    "Wartości odżywcze nie zostały wyliczone. Oznaczenia wariantów służą prezentacji aplikacji i nie są zaleceniem dietetycznym."
+  ],
   "meal_types": [
     "breakfast"
   ],
-  "dish_types": [],
+  "dish_types": [
+    "bread"
+  ],
   "user": {
     "favorite": false,
+    "hidden": false,
     "notes": "",
     "tags": [],
     "meal_types": null,
     "dish_types": null,
-    "preparation_minutes": null
+    "preparation_minutes": 10
   },
   "created_at": null,
   "updated_at": null,
@@ -30,155 +35,185 @@
   "variants": {
     "female": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 494.0,
-        "protein_g": 40.0,
-        "fat_g": 16.0,
-        "carbs_g": 50.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Bajgiel z sezamem",
-          "amount": 1.0,
-          "unit": "sztuka",
-          "metric_amount": 75.0,
+          "name": "Bajgiel sezamowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 85,
           "metric_unit": "g",
           "group": null,
-          "raw": "Bajgiel z sezamem – 1 sztuka (75 g)"
+          "raw": "Bajgiel sezamowy — 85 g"
         },
         {
-          "name": "Ser twarogowy półtłusty",
-          "amount": 5.0,
-          "unit": "plastrów",
-          "metric_amount": 150.0,
+          "name": "Twaróg półtłusty",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 80,
           "metric_unit": "g",
           "group": null,
-          "raw": "Ser twarogowy półtłusty – 5 plastrów (150 g)"
+          "raw": "Twaróg półtłusty — 80 g"
         },
         {
-          "name": "Jogurt grecki",
-          "amount": 4.0,
-          "unit": "łyżki",
-          "metric_amount": 80.0,
+          "name": "Jogurt naturalny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 25,
           "metric_unit": "g",
           "group": null,
-          "raw": "Jogurt grecki – 4 łyżki (80 g)"
+          "raw": "Jogurt naturalny — 25 g"
         },
         {
-          "name": "Szczypiorek siekany",
-          "amount": 1.0,
-          "unit": "łyżeczka",
-          "metric_amount": 5.0,
+          "name": "Rzodkiewka",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 45,
           "metric_unit": "g",
           "group": null,
-          "raw": "Szczypiorek siekany – 1 łyżeczka (5 g)"
+          "raw": "Rzodkiewka — 45 g"
         },
         {
-          "name": "Pomidor",
-          "amount": 0.5,
-          "unit": "sztuki",
-          "metric_amount": 80.0,
+          "name": "Ogórek świeży",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 50,
           "metric_unit": "g",
           "group": null,
-          "raw": "Pomidor – 0.5 sztuki (80 g)"
+          "raw": "Ogórek świeży — 50 g"
         },
         {
-          "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Szpinak baby",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 15,
           "metric_unit": "g",
           "group": null,
-          "raw": "Sól – 1 szczypta (0.25 g)"
+          "raw": "Szpinak baby — 15 g"
         },
         {
-          "name": "Pieprz czarny",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Szczypiorek",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 5,
           "metric_unit": "g",
           "group": null,
-          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+          "raw": "Szczypiorek — 5 g"
+        },
+        {
+          "name": "Sok z cytryny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 4,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Sok z cytryny — 4 ml"
+        },
+        {
+          "name": "Pieprz czarny mielony",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 0.2,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pieprz czarny mielony — 0.2 g"
         }
       ],
       "steps": null,
-      "source": null
+      "source": {
+        "parser": "agent"
+      }
     },
     "male": {
       "servings": 1,
-      "nutrition": {
-        "kcal": 709.0,
-        "protein_g": 48.0,
-        "fat_g": 18.0,
-        "carbs_g": 91.0
-      },
+      "nutrition": null,
       "ingredients": [
         {
-          "name": "Bajgiel z sezamem",
-          "amount": 2.0,
-          "unit": "sztuki",
-          "metric_amount": 150.0,
+          "name": "Bajgiel sezamowy",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 110,
           "metric_unit": "g",
           "group": null,
-          "raw": "Bajgiel z sezamem – 2 sztuki (150 g)"
+          "raw": "Bajgiel sezamowy — 110 g"
         },
         {
-          "name": "Ser twarogowy półtłusty",
-          "amount": 5.0,
-          "unit": "plastrów",
-          "metric_amount": 150.0,
+          "name": "Twaróg półtłusty",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 115,
           "metric_unit": "g",
           "group": null,
-          "raw": "Ser twarogowy półtłusty – 5 plastrów (150 g)"
+          "raw": "Twaróg półtłusty — 115 g"
         },
         {
-          "name": "Jogurt grecki",
-          "amount": 4.0,
-          "unit": "łyżki",
-          "metric_amount": 80.0,
+          "name": "Jogurt naturalny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 35,
           "metric_unit": "g",
           "group": null,
-          "raw": "Jogurt grecki – 4 łyżki (80 g)"
+          "raw": "Jogurt naturalny — 35 g"
         },
         {
-          "name": "Szczypiorek siekany",
-          "amount": 2.0,
-          "unit": "łyżeczki",
-          "metric_amount": 10.0,
+          "name": "Rzodkiewka",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 60,
           "metric_unit": "g",
           "group": null,
-          "raw": "Szczypiorek siekany – 2 łyżeczki (10 g)"
+          "raw": "Rzodkiewka — 60 g"
         },
         {
-          "name": "Pomidor",
-          "amount": 1.0,
-          "unit": "sztuka",
-          "metric_amount": 160.0,
+          "name": "Ogórek świeży",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 70,
           "metric_unit": "g",
           "group": null,
-          "raw": "Pomidor – 1 sztuka (160 g)"
+          "raw": "Ogórek świeży — 70 g"
         },
         {
-          "name": "Sól",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Szpinak baby",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 20,
           "metric_unit": "g",
           "group": null,
-          "raw": "Sól – 1 szczypta (0.25 g)"
+          "raw": "Szpinak baby — 20 g"
         },
         {
-          "name": "Pieprz czarny",
-          "amount": 1.0,
-          "unit": "szczypta",
-          "metric_amount": 0.25,
+          "name": "Szczypiorek",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 7,
           "metric_unit": "g",
           "group": null,
-          "raw": "Pieprz czarny – 1 szczypta (0.25 g)"
+          "raw": "Szczypiorek — 7 g"
+        },
+        {
+          "name": "Sok z cytryny",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 6,
+          "metric_unit": "ml",
+          "group": null,
+          "raw": "Sok z cytryny — 6 ml"
+        },
+        {
+          "name": "Pieprz czarny mielony",
+          "amount": null,
+          "unit": null,
+          "metric_amount": 0.3,
+          "metric_unit": "g",
+          "group": null,
+          "raw": "Pieprz czarny mielony — 0.3 g"
         }
       ],
       "steps": null,
-      "source": null
+      "source": {
+        "parser": "agent"
+      }
     }
   }
 }
