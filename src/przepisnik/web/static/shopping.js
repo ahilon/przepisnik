@@ -111,9 +111,10 @@ function normalizedQuantity(amount, unit) {
 }
 async function addRecipeToShopping(recipe, kind, servings) {
   await loadShopping();
-  const factor = servings / recipe.variants[kind].servings;
+  const variant = displayedVariant(recipe, kind);
+  const factor = servings / variant.servings;
   await saveShopping(doc => {
-    for (const ingredient of recipe.variants[kind].ingredients) {
+    for (const ingredient of variant.ingredients) {
       const metric = ingredient.metric_amount != null;
       const base = metric ? ingredient.metric_amount : ingredient.amount;
       const scaled = base == null ? null : base * factor;

@@ -1,8 +1,9 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
+const COMBINED_VARIANT = "combined";
 const labels = {
   breakfast: "Śniadanie", lunch: "Obiad", dinner: "Kolacja", snack: "Przekąska",
-  female: "Kobieta", male: "Mężczyzna", family: "Rodzina",
+  female: "Kobieta", male: "Mężczyzna", family: "Rodzina", combined: "Wspólne",
   main: "Danie główne", soup: "Zupa", salad: "Sałatka", cake: "Ciasto",
   bread: "Chleb", dessert: "Deser", other: "Inne"
 };
@@ -201,6 +202,7 @@ async function loadRecipes() {
     $("#tag").value = oldTag;
     const params = query();
     if (params.get("page") === "1") params.delete("page");
+    if (params.get("variant") === COMBINED_VARIANT) params.delete("variant");
     history.replaceState(null, "", params.size ? `/?${params}` : "/");
   } catch (error) {
     if (error.name === "AbortError") return;
@@ -234,7 +236,8 @@ function updateControls() {
   $("#collection-title").textContent = { all: "Wszystkie przepisy", favorites: "Twoje ulubione", uncategorized: "Bez pory posiłku", hidden: "Ukryte przepisy" }[state.collection];
 }
 function resetFilters() {
-  $("#filters").reset();
+  HTMLFormElement.prototype.reset.call($("#filters"));
+  $("#variant").value = COMBINED_VARIANT;
   $("#search").value = "";
   state.meal = "";
   state.collection = "all";
@@ -280,9 +283,12 @@ function sourceBlock(source) {
   if (source.page) block.append(document.createTextNode(` · strona ${source.page}`));
   return block;
 }
+function displayedVariant(recipe, kind) {
+  return kind === COMBINED_VARIANT ? recipe.combined_variant : recipe.variants[kind];
+}
 function renderDetail() {
   const recipe = detailRecipe;
-  const variant = recipe.variants[selectedVariant];
+  const variant = displayedVariant(recipe, selectedVariant);
   const servings = Math.min(displayedServings ?? variant.servings, 20);
   displayedServings = servings;
   const factor = servings / variant.servings;
@@ -332,21 +338,24 @@ function renderDetail() {
   });
   actions.append(edit, favoriteButton(recipe), metadataButton(recipe, "hidden", "Przywróć przepis", "Ukryj przepis"), shoppingButton); inner.append(actions);
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
-  for (const key of Object.keys(recipe.variants)) {
+  for (const key of [COMBINED_VARIANT, ...Object.keys(recipe.variants)]) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
+    tab.type = "button";
+    tab.disabled = key === COMBINED_VARIANT && !recipe.combined_variant;
     tab.setAttribute("aria-pressed", String(key === selectedVariant));
     tab.addEventListener("click", () => {
-      selectedVariant = key; displayedServings = recipe.variants[key].servings; renderDetail();
+      selectedVariant = key; displayedServings = displayedVariant(recipe, key).servings; renderDetail();
     });
     tabs.append(tab);
   }
   inner.append(tabs);
-  if (recipe.variants.male && recipe.variants.female) {
-    const stepsFor = kind => (recipe.variants[kind].steps || recipe.steps).map(step => step.trim().replace(/\s+/g, " "));
-    if (JSON.stringify(stepsFor("male")) !== JSON.stringify(stepsFor("female"))) {
-      const warning = element("p", "variant-warning", `Kroki przygotowania różnią się dla kobiety i mężczyzny. Wyświetlasz wariant: ${labels[selectedVariant]}.`);
-      warning.setAttribute("role", "note"); inner.append(warning);
-    }
+  if (!recipe.combined_variant) {
+    const reason = recipe.variants.male && recipe.variants.female
+      ? "różnice w składnikach lub krokach." : "brak wariantu kobiety lub mężczyzny.";
+    const warning = element("p", "variant-warning detail-hint", `Wspólne niedostępne: ${reason}`);
+    warning.setAttribute("role", "note"); inner.append(warning);
+  } else if (selectedVariant === COMBINED_VARIANT) {
+    inner.append(element("p", "detail-hint", "Dwie porcje to jedna kobiety i jedna mężczyzny. Zmiana liczby porcji skaluje oba warianty proporcjonalnie."));
   }
   const portions = element("div", "portion-controls");
   const portionLabel = element("label", "", "Liczba porcji"); portionLabel.htmlFor = "detail-servings";
@@ -416,7 +425,11 @@ function renderDetail() {
   const tags = element("section", "notes detail-tags");
   tags.append(tagEditor("detail-tags", recipe.user.tags, values => saveRecipeTags(recipe.id, values)));
   inner.append(tags);
-  const source = sourceBlock(variant.source); if (source) inner.append(source);
+  const sources = selectedVariant === COMBINED_VARIANT
+    ? [recipe.variants.female.source, recipe.variants.male.source] : [variant.source];
+  for (const value of sources) {
+    const source = sourceBlock(value); if (source) inner.append(source);
+  }
   content.append(inner);
 }
 async function openRecipe(id) {
@@ -427,8 +440,9 @@ async function openRecipe(id) {
   try {
     const recipe = await request(`/api/recipes/${encodeURIComponent(id)}`, detailRequest.signal);
     detailRecipe = recipe;
-    selectedVariant = recipe.variants[$("#variant").value] ? $("#variant").value : Object.keys(recipe.variants)[0];
-    displayedServings = recipe.variants[selectedVariant].servings;
+    const preferred = $("#variant").value;
+    selectedVariant = displayedVariant(recipe, preferred) ? preferred : Object.keys(recipe.variants)[0];
+    displayedServings = displayedVariant(recipe, selectedVariant).servings;
     renderDetail();
   } catch (error) {
     if (error.name !== "AbortError") $("#detail-content").replaceChildren(element("p", "error", error.message));
@@ -468,7 +482,7 @@ document.addEventListener("keydown", event => {
 });
 const initial = new URLSearchParams(location.search);
 $("#search").value = initial.get("q") || "";
-$("#variant").value = initial.get("variant") || "";
+$("#variant").value = initial.get("variant") || COMBINED_VARIANT;
 $("#dish").value = initial.get("dish") || "";
 if (initial.get("tag")) $("#tag").append(new Option(initial.get("tag"), initial.get("tag"), true, true));
 state.meal = ["breakfast", "lunch", "dinner", "snack"].includes(initial.get("meal")) ? initial.get("meal") : "";

@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from pydantic import ValidationError
 
+from przepisnik.core.combined import COMBINED_VARIANT, CombinedVariantBuilder
 from przepisnik.core.database import DATABASE_NAME, SqliteStore
 from przepisnik.core.models import DishType, ImageData, MealType, Recipe, VariantKind, slugify
 from przepisnik.core.recipes import RecipeFilters, select_recipes
@@ -106,12 +107,16 @@ class RecipeHandler(BaseHTTPRequestHandler):
             if path.startswith("/api/recipes/"):
                 recipe = store.get(path.removeprefix("/api/recipes/"))
                 if recipe:
+                    combined = CombinedVariantBuilder().build(recipe)
                     self._json(
                         {
                             **recipe.model_dump(mode="json"),
                             "effective_meal_types": recipe.effective_meal_types,
                             "effective_dish_types": recipe.effective_dish_types,
                             "image_url": _image_url(recipe),
+                            "combined_variant": combined.model_dump(mode="json")
+                            if combined
+                            else None,
                         }
                     )
                     return
@@ -226,7 +231,9 @@ class RecipeHandler(BaseHTTPRequestHandler):
             query=values.get("q", ""),
             meal=MealType(values["meal"]) if values.get("meal") else None,
             dish=DishType(values["dish"]) if values.get("dish") else None,
-            variant=VariantKind(values["variant"]) if values.get("variant") else None,
+            variant=VariantKind(values["variant"])
+            if values.get("variant") and values["variant"] != COMBINED_VARIANT
+            else None,
             favorite=values.get("favorite") == "1",
             tag=values.get("tag", ""),
             uncategorized=values.get("uncategorized") == "1",

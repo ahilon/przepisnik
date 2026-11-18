@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.12.0] - Unreleased
+
+- Default to Wspólne, combining one female and one male serving when products,
+  compatible units and preparation steps match, with a short fallback notice otherwise.
+- Carry the shared quantities through serving adjustments, the shopping list and
+  PDF export while preserving original recipes and the independent family variant.
+
 ## [1.11.2] - Unreleased
 
 - Replace PyMuPDF with pypdf and Pillow while preserving Respo text positions,
