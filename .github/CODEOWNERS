@@ -1,5 +1,3 @@
-# Default owner for all files
+# Sole code owner for all files, including tests and this ownership file.
+# Contact: ziela111@gmail.com; @ahilon is the canonical GitHub identity.
 * @ahilon
-
-# Owners of tests and all nested directories
-/tests/ @ahilon @pz-aiagent

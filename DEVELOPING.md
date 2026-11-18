@@ -296,6 +296,41 @@ AMD64/ARM64 and publishes the tested image pair only from main. PR validation do
 not prove registry publication. For manual E2E setup and execution, see
 [tests/README.md](tests/README.md).
 
+## Required owner review on main
+
+`.github/CODEOWNERS` assigns every path, including tests and the ownership file,
+to `@ahilon` alone. The contact email is `ziela111@gmail.com`; the GitHub username
+is the identity used for review. Other contributors can review and comment, but
+their approval alone must not unlock a merge.
+
+The target settings for the existing `main_ruleset` live in
+[main-review.json](.github/rulesets/main-review.json). They require one code-owner
+approval, dismiss approvals after new commits, allow no bypass actors, preserve
+linear/squash history and require Ruff, Mypy, Unit tests, E2E tests, Checkov and
+Secrets from GitHub Actions. These are check names; `Lint` is the workflow name,
+while its actual check is `Ruff`.
+
+Committing this JSON does not change repository settings. A repository admin must
+apply it to the existing ruleset and verify the effective rules on main:
+
+```powershell
+gh api --method PUT repos/ahilon/przepisnik/rulesets/26055094 --input .github/rulesets/main-review.json
+gh api repos/ahilon/przepisnik/rules/branches/main
+```
+
+Both the admin settings and the merged CODEOWNERS file on main are required.
+CODEOWNERS is evaluated from the PR's base branch, so the removal of alternate
+owners applies after the ownership PR is merged. Do not treat a proposed JSON
+file or an owner listed only on the PR branch as active enforcement.
+
+GitHub does not allow authors to approve their own PRs. With a sole required
+reviewer and no bypass, `@ahilon` should review PRs opened by a separate contributor
+account. A PR authored by `@ahilon` cannot satisfy this policy through self-review.
+Repository administrators retain the ability to change the policy itself.
+
+References: [code owners](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners),
+[rulesets](https://docs.github.com/en/rest/repos/rules#update-a-repository-ruleset).
+
 ## Branches and versions
 
 Branches use `<type>/<kebab-case-summary>`. Commit messages and PR titles use

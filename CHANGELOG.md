@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.11.3] - Unreleased
+
+- Make @ahilon the sole code owner for every path, removing alternate test owners.
+- Define the main ruleset requiring fresh code-owner approval without bypass actors,
+  and name the actual Ruff, Mypy, unit, E2E, Checkov and Secrets merge checks.
+- Document administrative activation separately from merging CODEOWNERS changes,
+  including GitHub's restriction on approving one's own pull requests.
+
 ## [1.11.2] - Unreleased
 
 - Replace PyMuPDF with pypdf and Pillow while preserving Respo text positions,
