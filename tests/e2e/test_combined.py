@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from playwright.sync_api import Page, expect
+from ui_actions import ApplicationActions
 
 from przepisnik.core.database import SqliteStore
 from przepisnik.core.models import Ingredient, Nutrition, Recipe, Variant, VariantKind
@@ -54,21 +55,6 @@ def combined_recipe(recipe_data: Path) -> Recipe:
         return store.save(recipe)
 
 
-def _open_recipe(page: Page, app_url: str) -> None:
-    """Open the controlled recipe using the application's default view.
-
-    Args:
-        page: Fresh browser page.
-        app_url: Isolated application address.
-
-    Returns:
-        None: Recipe details are visible.
-    """
-    page.goto(app_url)
-    page.get_by_role("button", name="Otwórz przepis: Combined example", exact=True).click()
-    return None
-
-
 def test_default_shared_view_scaling_and_original_editor(
     page: Page, app_url: str, combined_recipe: Recipe, recipe_data: Path
 ) -> None:
@@ -84,7 +70,9 @@ def test_default_shared_view_scaling_and_original_editor(
         None: Shared display, individual tabs, reopening and source integrity hold.
     """
     before = (recipe_data / "recipes.sqlite3").read_bytes()
-    _open_recipe(page, app_url)
+    app = ApplicationActions(page)
+    page.goto(app_url)
+    app.open_recipe(combined_recipe.title)
     expect(page.locator("#variant")).to_have_value("combined")
     shared = page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True)
     expect(shared).to_have_attribute("aria-pressed", "true")
@@ -94,8 +82,7 @@ def test_default_shared_view_scaling_and_original_editor(
     expect(page.locator(".ingredients")).to_contain_text("Salt to taste")
     expect(page.locator(".nutrition strong").first).to_have_text("800")
     portions = page.locator("#detail-servings")
-    portions.fill("4")
-    portions.press("Tab")
+    app.set_servings("4")
     expect(page.locator(".ingredients")).to_contain_text("Rice — 320 g")
     expect(page.locator(".nutrition strong").first).to_have_text("1600")
     page.locator(".variant-tabs").get_by_role("button", name="Kobieta", exact=True).click()
@@ -133,16 +120,16 @@ def test_shared_shopping_and_pdf_use_the_same_scaled_totals(
     Returns:
         None: Scaled ingredients persist and appear in the print/PDF sheet.
     """
-    _open_recipe(page, app_url)
-    portions = page.locator("#detail-servings")
-    portions.fill("4")
-    portions.press("Tab")
-    page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
+    app = ApplicationActions(page)
+    page.goto(app_url)
+    app.open_recipe(combined_recipe.title)
+    app.set_servings("4")
+    app.add_recipe_to_shopping()
     expect(page.locator(".shopping-notice")).to_contain_text("4 porcji")
     saved = page.request.get(f"{app_url}/api/shopping-list").json()
     assert saved["revision"] == 1
     assert len(saved["items"]) == 3
-    page.get_by_role("button", name="Pokaż listę", exact=True).click()
+    app.show_shopping_list()
     rice = page.locator(".shopping-row").filter(has=page.get_by_text("Rice", exact=True))
     egg = page.locator(".shopping-row").filter(has=page.get_by_text("Egg", exact=True))
     expect(rice.get_by_label("Ilość", exact=True)).to_have_value("320")
@@ -187,7 +174,9 @@ def test_unavailable_shared_view_falls_back_with_a_short_notice(
         del variants[VariantKind.MALE]
     with SqliteStore(recipe_data) as store, store.transaction():
         store.save(combined_recipe.model_copy(update={"variants": variants}))
-    _open_recipe(page, app_url)
+    app = ApplicationActions(page)
+    page.goto(app_url)
+    app.open_recipe(combined_recipe.title)
     expect(
         page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True)
     ).to_be_disabled()

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.12.2] - Unreleased
+
+- Keep sidebar filters reachable in short desktop windows with compact spacing
+  and independent scrolling while preserving the mobile layout.
+- Share browser actions across E2E tests and cover tag persistence, independent
+  filtering and desktop/mobile visibility using isolated demo data.
+- Verify tag choices remain available across search filters, pagination and
+  active/hidden collection switches, including empty results.
+
 ## [1.12.1] - Unreleased
 
 - Run seven core browser sanity cases on PRs and retain full AMD64/ARM64 image
