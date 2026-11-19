@@ -16,6 +16,12 @@
 .shopping-notice{margin:0 0 16px;padding:12px 14px;border-radius:7px;background:var(--soft);color:var(--green);font-size:13px;line-height:1.6}.link-button{border:0;background:none;padding:0;color:var(--green);font-weight:600;text-decoration:underline}
 .shopping-print{display:none}
 /* Keep every sidebar filter reachable in short desktop windows and at browser zoom. */
+.variant-merge-notice { margin: 18px 0; padding: 16px; border: 1px solid #b9d2f5; border-radius: 8px; background: #eef5ff; color: #174786; }
+.variant-merge-notice p { margin: 0 0 12px; }
+.variant-merge-notice .error { margin: 12px 0 0; }
+.editor-variant-controls { margin: 24px 0; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.editor-variant-controls select { width: 100%; min-width: 0; }
+.editor-variant-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
 @media (min-width: 701px) {
   .sidebar { height: 100dvh; overflow-y: auto; scrollbar-gutter: stable; }
   .sidebar > * { flex-shrink: 0; }

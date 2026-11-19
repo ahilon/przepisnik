@@ -14,9 +14,12 @@ import pytest
 from container_runtime import ContainerApplication
 from playwright.sync_api import Page
 from release_results import ReleaseResults
+from shared_variant_fixtures import shared_variant_recipe
 
 from przepisnik.constants import IPV4_LOOPBACK
+from przepisnik.core.database import SqliteStore
 from przepisnik.core.migration import migrate_json
+from przepisnik.core.models import ImageData, Recipe
 from przepisnik.web.config import ServerConfig
 from przepisnik.web.server import RecipeHandler
 
@@ -68,6 +71,21 @@ def recipe_data(tmp_path: Path) -> Path:
     shutil.copyfile(fixtures / "placeholder.png", data_dir / "empty_dish.png")
     migrate_json(data_dir)
     return data_dir
+
+
+@pytest.fixture
+def shared_recipe(recipe_data: Path) -> Recipe:
+    """Save matching audience variants and a synthetic photo in disposable data.
+
+    Args:
+        recipe_data: This test's isolated collection directory.
+
+    Returns:
+        Recipe: Persisted controlled recipe with a current concurrency token.
+    """
+    image = ImageData((recipe_data / "empty_dish.png").read_bytes(), "png")
+    with SqliteStore(recipe_data) as store, store.transaction():
+        return store.save(shared_variant_recipe(), image)
 
 
 @pytest.fixture

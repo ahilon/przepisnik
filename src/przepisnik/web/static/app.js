@@ -3,7 +3,7 @@ const $ = (selector) => document.querySelector(selector);
 const COMBINED_VARIANT = "combined";
 const labels = {
   breakfast: "Śniadanie", lunch: "Obiad", dinner: "Kolacja", snack: "Przekąska",
-  female: "Kobieta", male: "Mężczyzna", family: "Rodzina", combined: "Wspólne",
+  female: "Kobieta", male: "Mężczyzna", family: "Wspólne", combined: "Dla dwojga",
   main: "Danie główne", soup: "Zupa", salad: "Sałatka", cake: "Ciasto",
   bread: "Chleb", dessert: "Deser", other: "Inne"
 };
@@ -286,6 +286,32 @@ function sourceBlock(source) {
 function displayedVariant(recipe, kind) {
   return kind === COMBINED_VARIANT ? recipe.combined_variant : recipe.variants[kind];
 }
+function variantMergeNotice(recipe) {
+  const notice = element("section", "variant-merge-notice");
+  notice.setAttribute("aria-label", "Łączenie identycznych wariantów");
+  const message = element("p", "", "Warianty kobiety i mężczyzny są identyczne. Możesz je złączyć we Wspólne.");
+  message.setAttribute("role", "note");
+  const error = element("p", "error"); error.setAttribute("role", "alert"); error.hidden = true;
+  const merge = element("button", "secondary", "Złącz"); merge.type = "button";
+  merge.addEventListener("click", async () => {
+    merge.disabled = true; error.hidden = true;
+    try {
+      await pendingTagSave;
+      if (detailRecipe?.id !== recipe.id) return;
+      const response = await fetch(`/api/recipes/${encodeURIComponent(recipe.id)}/merge-variants`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updated_at: detailRecipe.updated_at })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Nie udało się złączyć wariantów.");
+      await loadRecipes();
+      if (detailRecipe?.id === recipe.id) await openRecipe(recipe.id);
+    } catch (failure) { error.textContent = failure.message; error.hidden = false; }
+    finally { merge.disabled = false; }
+  });
+  notice.append(message, merge, error);
+  return notice;
+}
 function renderDetail() {
   const recipe = detailRecipe;
   const variant = displayedVariant(recipe, selectedVariant);
@@ -337,8 +363,12 @@ function renderDetail() {
     actions.insertAdjacentElement("afterend", shoppingNotice);
   });
   actions.append(edit, favoriteButton(recipe), metadataButton(recipe, "hidden", "Przywróć przepis", "Ukryj przepis"), shoppingButton); inner.append(actions);
+  if (recipe.can_merge_variants) inner.append(variantMergeNotice(recipe));
   const tabs = element("div", "variant-tabs"); tabs.setAttribute("aria-label", "Wariant przepisu");
-  for (const key of [COMBINED_VARIANT, ...Object.keys(recipe.variants)]) {
+  const storedKinds = Object.keys(recipe.variants);
+  const sharedOnly = storedKinds.length === 1 && storedKinds[0] === "family";
+  const tabKinds = sharedOnly ? storedKinds : [COMBINED_VARIANT, ...storedKinds];
+  for (const key of tabKinds) {
     const tab = element("button", key === selectedVariant ? "active" : "", labels[key]);
     tab.type = "button";
     tab.disabled = key === COMBINED_VARIANT && !recipe.combined_variant;
@@ -349,10 +379,10 @@ function renderDetail() {
     tabs.append(tab);
   }
   inner.append(tabs);
-  if (!recipe.combined_variant) {
+  if (!recipe.combined_variant && !sharedOnly) {
     const reason = recipe.variants.male && recipe.variants.female
       ? "różnice w składnikach lub krokach." : "brak wariantu kobiety lub mężczyzny.";
-    const warning = element("p", "variant-warning detail-hint", `Wspólne niedostępne: ${reason}`);
+    const warning = element("p", "variant-warning detail-hint", `Dla dwojga niedostępne: ${reason}`);
     warning.setAttribute("role", "note"); inner.append(warning);
   } else if (selectedVariant === COMBINED_VARIANT) {
     inner.append(element("p", "detail-hint", "Dwie porcje to jedna kobiety i jedna mężczyzny. Zmiana liczby porcji skaluje oba warianty proporcjonalnie."));
@@ -426,7 +456,8 @@ function renderDetail() {
   tags.append(tagEditor("detail-tags", recipe.user.tags, values => saveRecipeTags(recipe.id, values)));
   inner.append(tags);
   const sources = selectedVariant === COMBINED_VARIANT
-    ? [recipe.variants.female.source, recipe.variants.male.source] : [variant.source];
+    ? [recipe.variants.female.source, recipe.variants.male.source]
+    : selectedVariant === "family" ? recipe.shared_sources || [variant.source] : [variant.source];
   for (const value of sources) {
     const source = sourceBlock(value); if (source) inner.append(source);
   }
@@ -592,6 +623,7 @@ function stepFields(parent, kind, steps) {
 function variantFields(form, kind, variant, steps) {
   const fieldset = element("fieldset", "editor-variant");
   fieldset.dataset.kind = kind;
+  fieldset.originalVariant = variant;
   fieldset.append(element("legend", "", labels[kind]));
   const servings = editorField(fieldset, `${kind}-servings`, "Liczba porcji", variant.servings, "number");
   servings.required = true; servings.min = "1"; servings.step = "1";
@@ -603,6 +635,59 @@ function variantFields(form, kind, variant, steps) {
   }
   fieldset.append(element("p", "detail-hint", "Wartości odżywcze dla wszystkich porcji: wypełnij wszystkie cztery pola albo zostaw wszystkie puste."), nutrition);
   form.append(fieldset);
+  return fieldset;
+}
+function readVariant(fieldset, recipe) {
+  const kind = fieldset.dataset.kind;
+  const original = fieldset.originalVariant;
+  const ingredients = readIngredients(fieldset);
+  const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
+  if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
+  const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
+  const steps = [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim());
+  if (steps.some(step => !step)) throw new Error("Uzupełnij treść każdego kroku.");
+  const unchangedSteps = JSON.stringify(steps) === JSON.stringify(original.steps || recipe?.steps);
+  return {
+    ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
+    steps: unchangedSteps ? original.steps ?? null : steps
+  };
+}
+function addVariantControls(container, recipe) {
+  const controls = element("section", "editor-variant-controls");
+  controls.setAttribute("aria-label", "Dodawanie wariantów");
+  controls.append(element("h3", "", "Dodaj brakujący wariant"));
+  const label = element("label", "", "Skopiuj dane z wariantu"); label.htmlFor = "variant-copy-source";
+  const source = element("select"); source.id = "variant-copy-source";
+  const buttons = element("div", "editor-variant-buttons");
+  const kinds = ["family", "female", "male"];
+  const refresh = () => {
+    const previous = source.value;
+    const present = [...container.querySelectorAll(".editor-variant")].map(fieldset => fieldset.dataset.kind);
+    source.replaceChildren(...kinds.filter(kind => present.includes(kind)).map(kind => new Option(labels[kind], kind)));
+    if (present.includes(previous)) source.value = previous;
+    buttons.replaceChildren();
+    for (const kind of kinds.filter(kind => !present.includes(kind))) {
+      const add = rowButton(`+ Dodaj wariant: ${labels[kind]}`, () => {
+        const error = $("#editor-error"); error.hidden = true;
+        try {
+          const original = container.querySelector(`[data-kind="${source.value}"]`);
+          const copied = structuredClone(readVariant(original, recipe));
+          const fieldset = variantFields(container, kind, copied, recipe.steps);
+          const remove = rowButton(`Usuń dodawany wariant: ${labels[kind]}`, () => {
+            fieldset.remove(); refresh(); source.focus();
+          });
+          fieldset.append(remove);
+          refresh();
+          fieldset.querySelector("input").focus();
+        } catch (failure) { error.textContent = failure.message; error.hidden = false; }
+      });
+      buttons.append(add);
+    }
+    controls.hidden = present.length === kinds.length;
+  };
+  controls.append(label, source, buttons, element("p", "detail-hint", "Nowy wariant kopiuje dane wybranego wariantu. Możesz je dostosować przed zapisaniem przepisu."));
+  container.before(controls);
+  refresh();
 }
 function openEditor(recipe = null) {
   editingRecipe = recipe;
@@ -623,7 +708,9 @@ function openEditor(recipe = null) {
   editorField(form, "edit-notes", "Twoje notatki", recipe?.user.notes, "textarea");
   const favorite = editorField(form, "edit-favorite", "Ulubiony", "", "checkbox"); favorite.checked = recipe?.user.favorite || false;
   const variants = recipe?.variants || { family: { servings: 1, ingredients: [], nutrition: null } };
-  for (const [kind, variant] of Object.entries(variants)) variantFields(form, kind, variant, recipe?.steps || []);
+  const variantContainer = element("section", "editor-variants"); form.append(variantContainer);
+  for (const [kind, variant] of Object.entries(variants)) variantFields(variantContainer, kind, variant, recipe?.steps || []);
+  if (recipe) addVariantControls(variantContainer, recipe);
   if (!recipe) {
     const label = element("label", "", "Wariant nowego przepisu"); label.htmlFor = "edit-kind";
     const select = element("select"); select.id = "edit-kind";
@@ -675,18 +762,7 @@ $("#recipe-form").addEventListener("submit", async event => {
     const variants = {};
     for (const fieldset of form.querySelectorAll(".editor-variant")) {
       const kind = fieldset.dataset.kind;
-      const original = editingRecipe?.variants[kind];
-      const ingredients = readIngredients(fieldset);
-      const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
-      if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
-      const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
-      const steps = [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim());
-      if (steps.some(step => !step)) throw new Error("Uzupełnij treść każdego kroku.");
-      variants[editingRecipe ? kind : $("#edit-kind").value] = {
-        ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
-        steps: original && JSON.stringify(steps) === JSON.stringify(original.steps || editingRecipe.steps)
-          ? original.steps : steps
-      };
+      variants[editingRecipe ? kind : $("#edit-kind").value] = readVariant(fieldset, editingRecipe);
     }
     const preparationMinutes = Number($("#edit-hours").value) * 60 + Number($("#edit-minutes").value);
     if (($("#edit-hours").value !== "" || $("#edit-minutes").value !== "") && (!Number.isSafeInteger(preparationMinutes) || preparationMinutes <= 0)) throw new Error("Czas przygotowania musi wynosić co najmniej minutę lub pozostać pusty.");

@@ -100,7 +100,7 @@ def test_variant_and_reopen_reset_displayed_servings(portions_page: Page) -> Non
     expect(page.locator(".nutrition")).to_have_count(0)
     app.set_servings("2")
     expect(page.locator(".ingredients")).to_contain_text("Rice — 50 g")
-    page.locator(".variant-tabs").get_by_role("button", name="Rodzina", exact=True).click()
+    page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True).click()
     expect(page.get_by_label("Liczba porcji", exact=True)).to_have_value("2")
     page.locator("#close-detail").click()
     app.open_recipe("Portion example")

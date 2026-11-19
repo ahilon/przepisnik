@@ -9,7 +9,7 @@ Pull requests run seven short sanity cases from `e2e/test_sanity.py`: collection
 loading/search, recipe details/photo, recipe creation, recipe editing, serving
 scaling, shopping quantities after reload and shopping checked-state persistence.
 They cover those core journeys only. The remaining browser regressions, including
-Wspólne, PDF export, conflicts and mobile layout, remain in the full suite.
+Wspólne, Dla dwojga, PDF export, conflicts and mobile layout, remain in the full suite.
 
 The PR check keeps its existing name, **E2E tests**, but selects `-m sanity` with
 strict markers and requires a positive test collection with every selected case
@@ -119,6 +119,16 @@ Actions wait for the controls they operate on, without fixed sleeps. Keep scenar
 assertions, test-data setup, navigation and reloads in the test or its fixtures.
 After recording a scenario, replace repeated recorded interactions with these
 methods while retaining the generated assertions.
+
+Variant scenarios can also use `open_editor()`, `add_variant(target, source)`,
+`save_recipe()` and `merge_variants()`. Audience arguments use `VariantKind`;
+copying edits the form only, and saving remains a separate action.
+`e2e/test_shared_variants.py` covers explicit deduplication, conflicting portions,
+copying unsaved editor values and cancelling additions. Its controlled recipe
+comes from `shared_variant_fixtures.py` through the isolated `shared_recipe` fixture.
+HTTP regressions additionally exercise stale tokens, origin validation and rollback
+when saving source history fails. Unit cases compare ingredient multisets and
+preserve quantity, step, serving and nutrition differences.
 
 `e2e/test_tags.py` demonstrates tag persistence after reload, tag filtering with
 the search text cleared, and filter visibility in a short desktop window and on

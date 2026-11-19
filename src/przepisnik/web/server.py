@@ -20,8 +20,21 @@ from pydantic import ValidationError
 
 from przepisnik.core.combined import COMBINED_VARIANT, CombinedVariantBuilder
 from przepisnik.core.database import DATABASE_NAME, SqliteStore
-from przepisnik.core.models import DishType, ImageData, MealType, Recipe, VariantKind, slugify
+from przepisnik.core.models import (
+    DishType,
+    ImageData,
+    MealType,
+    Recipe,
+    Source,
+    VariantKind,
+    slugify,
+)
 from przepisnik.core.recipes import RecipeFilters, select_recipes
+from przepisnik.core.shared_variants import (
+    SHARED_SOURCES_STATE_PREFIX,
+    SharedVariantMerger,
+    VariantMergeConflictError,
+)
 from przepisnik.core.shopping import (
     ShoppingConflictError,
     ShoppingList,
@@ -97,6 +110,15 @@ class RecipeHandler(BaseHTTPRequestHandler):
         self._read_data(location.path, parse_qs(location.query))
 
     def _read_data(self, path: str, query: dict[str, list[str]]) -> None:
+        """Read validated application data and derived recipe capabilities.
+
+        Args:
+            path: Parsed request path.
+            query: Parsed query parameters for collection filtering.
+
+        Returns:
+            None: Writes the requested data or a not-found response.
+        """
         with SqliteStore(self._data_dir, read_only=True) as store:
             if path == "/api/shopping-list":
                 self._json(load_shopping_list(store).model_dump(mode="json"))
@@ -117,6 +139,11 @@ class RecipeHandler(BaseHTTPRequestHandler):
                             "combined_variant": combined.model_dump(mode="json")
                             if combined
                             else None,
+                            "can_merge_variants": SharedVariantMerger().can_merge(recipe),
+                            "shared_sources": [
+                                source.model_dump(mode="json")
+                                for source in self._shared_sources(store, recipe)
+                            ],
                         }
                     )
                     return
@@ -130,7 +157,11 @@ class RecipeHandler(BaseHTTPRequestHandler):
         self._json({"error": "Nie znaleziono przepisu lub pliku."}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
-        """Validate same-origin writes and persist a recipe in a transaction."""
+        """Validate same-origin writes and persist changes in a transaction.
+
+        Returns:
+            None: Writes a success response or an appropriate validation error.
+        """
         host = self.headers.get("Host", "")
         origin = self.headers.get("Origin")
         if host not in self._config.allowed_hosts or (
@@ -162,6 +193,11 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 },
                 HTTPStatus.CONFLICT,
             )
+        except VariantMergeConflictError:
+            self._json(
+                {"error": "Nie można złączyć wariantów — ich dane się różnią. Odśwież przepis."},
+                HTTPStatus.CONFLICT,
+            )
         except (ValueError, KeyError, TypeError):
             if urlsplit(self.path).path == "/api/shopping-list":
                 self._json(
@@ -181,7 +217,19 @@ class RecipeHandler(BaseHTTPRequestHandler):
             )
 
     def _write_payload(self, payload: dict[str, object]) -> None:
+        """Dispatch validated JSON writes to their transactional operation.
+
+        Args:
+            payload: Decoded JSON object from a same-origin request.
+
+        Returns:
+            None: Writes the operation's response.
+        """
         path = urlsplit(self.path).path
+        if path.startswith("/api/recipes/") and path.endswith("/merge-variants"):
+            recipe_id = path.removeprefix("/api/recipes/").removesuffix("/merge-variants")
+            self._merge_variants(recipe_id, payload)
+            return None
         if path == "/api/shopping-list":
             proposed = ShoppingList.model_validate(payload)
             with SqliteStore(self._data_dir) as store, store.transaction():
@@ -224,6 +272,64 @@ class RecipeHandler(BaseHTTPRequestHandler):
             {"id": saved.id, "changed": current is None or saved.updated_at != current.updated_at},
             HTTPStatus.CREATED if creating else HTTPStatus.OK,
         )
+
+    def _merge_variants(self, recipe_id: str, payload: dict[str, object]) -> None:
+        """Collapse current matching variants and preserve all source references atomically.
+
+        Args:
+            recipe_id: Stable identity of the recipe being merged.
+            payload: The exact updated_at token observed by the browser.
+
+        Returns:
+            None: Writes the saved identity, or a missing/stale recipe response.
+
+        Raises:
+            ValueError: If the request contains unexpected fields.
+            VariantMergeConflictError: If current variant content is incompatible.
+        """
+        if payload.keys() != {"updated_at"}:
+            raise ValueError("Variant merge requires only an updated_at token")
+        with SqliteStore(self._data_dir) as store, store.transaction():
+            current = store.get(recipe_id)
+            if current is None:
+                self._json({"error": "Nie znaleziono przepisu."}, HTTPStatus.NOT_FOUND)
+                return None
+            if payload["updated_at"] != current.model_dump(mode="json")["updated_at"]:
+                self._json(
+                    {"error": "Przepis zmienił się. Odśwież go przed łączeniem wariantów."},
+                    HTTPStatus.CONFLICT,
+                )
+                return None
+            merged = SharedVariantMerger().merge(current)
+            sources = self._shared_sources(store, current)
+            for variant in current.variants.values():
+                if variant.source is not None and variant.source not in sources:
+                    sources.append(variant.source)
+            saved = store.save(merged)
+            store.set_state(
+                f"{SHARED_SOURCES_STATE_PREFIX}{current.id}",
+                json.dumps([source.model_dump(mode="json") for source in sources]),
+            )
+        self._json({"id": saved.id, "changed": True})
+        return None
+
+    @staticmethod
+    def _shared_sources(store: SqliteStore, recipe: Recipe) -> list[Source]:
+        """Load source references retained when audience variants were collapsed.
+
+        Args:
+            store: Current recipe database connection.
+            recipe: Recipe whose shared variant and retained sources are requested.
+
+        Returns:
+            list[Source]: Unique shared provenance, including the active variant's source.
+        """
+        stored = store.get_state(f"{SHARED_SOURCES_STATE_PREFIX}{recipe.id}")
+        sources = [Source.model_validate(value) for value in json.loads(stored or "[]")]
+        shared = recipe.variants.get(VariantKind.FAMILY)
+        if shared is not None and shared.source is not None and shared.source not in sources:
+            sources.append(shared.source)
+        return sources
 
     def _list(self, store: SqliteStore, query: dict[str, list[str]]) -> None:
         values = {key: value[-1] for key, value in query.items()}

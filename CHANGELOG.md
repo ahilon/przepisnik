@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## [1.13.0] - Unreleased
+
+- Offer an explicit merge for identical female and male portions, storing one
+  unscaled Wspólne variant while retaining recipe metadata and both source references.
+- Label the calculated pair view Dla dwojga and keep existing shared data compatible.
+- Add missing audience variants from current editor values, with independent
+  adjustments, removable unsaved copies and normal save/cancel behavior.
+- Cover content equality, merge conflicts and rollback, source retention and
+  browser persistence with isolated unit, HTTP and E2E regressions.
+
 ## [1.12.2] - Unreleased
 
 - Keep sidebar filters reachable in short desktop windows with compact spacing

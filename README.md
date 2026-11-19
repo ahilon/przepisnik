@@ -19,13 +19,22 @@ is stored in an ordinary directory that you can back up and move to another inst
   a website, text or photo. Imports validate the data before saving it.
 - **Keep related portions together.** Store female, male and family variants of a
   dish under one recipe, with each variant's ingredients, nutrition and preparation
-  differences. Compare variants without keeping separate, disconnected collections.
+  differences. In the editor, add a missing variant by copying the current form
+  values from another variant, then adjust them before saving.
 - **Cook for the number of people you need.** Change the serving count to scale
   known ingredient quantities and nutrition. The original recipe stays intact.
-- **Cook together with Wspólne.** The default view combines one female and one male
+- **Cook together with Dla dwojga.** The default view combines one female and one male
   serving when products, compatible units and preparation steps match. Differences
   disable the shared view with a short notice; individual variants remain available.
   Shared quantities also carry through to the shopping list and its PDF export.
+- **Keep identical variants as Wspólne.** When female and male variants have
+  identical ingredients, quantities, servings, nutrition and preparation, a blue
+  notice offers **Złącz**. Ingredient order does not matter, but duplicate rows
+  still count. Clicking it replaces the pair with one stored shared variant without
+  adding quantities: 100 g in each original remains 100 g in Wspólne. A different
+  existing shared variant prevents merging. The recipe identity, photo, tags,
+  notes and both source references are retained. Add separate audiences again in
+  the editor whenever needed; matching variants are never merged automatically.
 - **Build one shopping list.** Add ingredients using the selected portions, combine
   matching products with compatible units, add custom items and tick off what you
   already have. Export products still to buy with **Eksportuj do PDF**, using your
@@ -233,7 +242,10 @@ uv run przepisnik schema --kind recipe
 uv run przepisnik check-data
 ```
 
-Variants: `male` (Mężczyzna), `female` (Kobieta), `family` (Rodzina).
+Stored variants: `male` (Mężczyzna), `female` (Kobieta), `family` (Wspólne).
+The browser's **Dla dwojga** view is calculated from female and male portions;
+it is not a fourth stored variant. Existing family variants use the Wspólne label
+without changing their stored quantities or database keys.
 The database location defaults to `./data` (override with `--data-dir` or `PRZEPISNIK_DATA`).
 
 ## Data layout
