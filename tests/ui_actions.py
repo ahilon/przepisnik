@@ -4,6 +4,8 @@ from urllib.parse import parse_qs, urlsplit
 
 from playwright.sync_api import Page
 
+from przepisnik.core.models import VariantKind
+
 _SHOPPING_LOADING_MESSAGE = "Wczytywanie listy…"
 
 
@@ -132,6 +134,55 @@ class ApplicationActions:
         detail.locator("#detail-tags").fill(tag_name)
         detail.get_by_role("button", name="Dodaj tag", exact=True).click()
         detail.locator("#detail-tags:not(:disabled)").wait_for(state="visible")
+        return None
+
+    def merge_variants(self) -> None:
+        """Accept the matching-variant notice in the open recipe.
+
+        Returns:
+            None: The merge notice disappears after successful recipe reloading.
+        """
+        notice = self._page.locator(".variant-merge-notice")
+        notice.get_by_role("button", name="Złącz", exact=True).click()
+        notice.wait_for(state="hidden")
+        return None
+
+    def open_editor(self) -> None:
+        """Open the persisted variants of the currently displayed recipe.
+
+        Returns:
+            None: The editor dialog is visible.
+        """
+        self._page.get_by_role("button", name="Edytuj przepis", exact=True).click()
+        self._page.locator("#editor").wait_for(state="visible")
+        return None
+
+    def add_variant(self, target: VariantKind, source: VariantKind) -> None:
+        """Copy current editor values into a missing audience variant.
+
+        Args:
+            target: Missing audience to add to the form.
+            source: Existing form variant whose current values should be copied.
+
+        Returns:
+            None: The added variant's fieldset is visible, without saving the form.
+        """
+        self._page.locator("#variant-copy-source").select_option(source.value)
+        button = self._page.get_by_role(
+            "button", name=f"+ Dodaj wariant: {target.label}", exact=True
+        )
+        button.click()
+        self._page.locator(f'#editor [data-kind="{target.value}"]').wait_for(state="visible")
+        return None
+
+    def save_recipe(self) -> None:
+        """Save the current editor form through its normal submit button.
+
+        Returns:
+            None: The editor closes after a successful response.
+        """
+        self._page.get_by_role("button", name="Zapisz przepis", exact=True).click()
+        self._page.locator("#editor").wait_for(state="hidden")
         return None
 
     def _wait_for_shopping_list(self) -> None:

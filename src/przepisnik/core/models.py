@@ -43,7 +43,7 @@ class VariantKind(StrEnum):
 VARIANT_LABELS: dict[VariantKind, str] = {
     VariantKind.MALE: "Mężczyzna",
     VariantKind.FEMALE: "Kobieta",
-    VariantKind.FAMILY: "Rodzina",
+    VariantKind.FAMILY: "Wspólne",
 }
 
 

@@ -40,7 +40,7 @@ def test_recipe_id_includes_version_only_after_the_first() -> None:
 
 def test_variant_kind_has_polish_labels() -> None:
     """Expose display labels for every audience."""
-    assert [kind.label for kind in VariantKind] == ["Mężczyzna", "Kobieta", "Rodzina"]
+    assert [kind.label for kind in VariantKind] == ["Mężczyzna", "Kobieta", "Wspólne"]
 
 
 def test_user_tags_are_stripped_and_deduplicated_case_insensitively() -> None:

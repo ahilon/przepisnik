@@ -74,7 +74,7 @@ def test_default_shared_view_scaling_and_original_editor(
     page.goto(app_url)
     app.open_recipe(combined_recipe.title)
     expect(page.locator("#variant")).to_have_value("combined")
-    shared = page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True)
+    shared = page.locator(".variant-tabs").get_by_role("button", name="Dla dwojga", exact=True)
     expect(shared).to_have_attribute("aria-pressed", "true")
     expect(page.get_by_label("Liczba porcji", exact=True)).to_have_value("2")
     expect(page.locator(".ingredients")).to_contain_text("Rice — 160 g")
@@ -178,7 +178,7 @@ def test_unavailable_shared_view_falls_back_with_a_short_notice(
     page.goto(app_url)
     app.open_recipe(combined_recipe.title)
     expect(
-        page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True)
+        page.locator(".variant-tabs").get_by_role("button", name="Dla dwojga", exact=True)
     ).to_be_disabled()
     notice = page.locator(".variant-warning")
     expected = (
@@ -186,7 +186,7 @@ def test_unavailable_shared_view_falls_back_with_a_short_notice(
         if difference == "missing"
         else "różnice w składnikach lub krokach."
     )
-    expect(notice).to_have_text(f"Wspólne niedostępne: {expected}")
+    expect(notice).to_have_text(f"Dla dwojga niedostępne: {expected}")
     expect(page.locator(".ingredients")).to_contain_text("Rice source: 120 g")
     if difference != "missing":
         page.locator(".variant-tabs").get_by_role("button", name="Mężczyzna", exact=True).click()
@@ -218,5 +218,5 @@ def test_explicit_variant_filter_overrides_shared_default(
     expect(page.locator("#variant")).to_have_value("combined")
     page.get_by_role("button", name="Otwórz przepis: Combined example", exact=True).click()
     expect(
-        page.locator(".variant-tabs").get_by_role("button", name="Wspólne", exact=True)
+        page.locator(".variant-tabs").get_by_role("button", name="Dla dwojga", exact=True)
     ).to_have_attribute("aria-pressed", "true")
