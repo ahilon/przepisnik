@@ -75,6 +75,57 @@ URL settings while avoiding its 0.10.0 instance-method fallback, which emits a
 deprecation warning with pytest 9.2. It does not set the isolated server's address;
 `app_page` navigates to the per-test `app_url` explicitly.
 
+## Shared browser actions
+
+`tests/ui_actions.py` provides `ApplicationActions` for repeated UI interactions.
+Create it with the existing test page; construction does not navigate or modify
+data. For example, in a browser test using `app_page`:
+
+```python
+from playwright.sync_api import Page, expect
+from ui_actions import ApplicationActions
+
+
+def test_recipe_tag(app_page: Page) -> None:
+    """Add a tag to a recipe in this test's disposable demo collection.
+
+    Args:
+        app_page: Browser showing this test's isolated demo collection.
+
+    Returns:
+        None: The submitted tag is visible on the recipe.
+    """
+    app = ApplicationActions(app_page)
+    title = "Bajgiel z twarożkiem szczypiorkowym i rzodkiewką"
+    app.search_product(title)
+    app.open_recipe(title)
+    app.add_tag("Breakfast")
+    expect(app_page.get_by_role("button", name="Usuń tag: Breakfast", exact=True)).to_be_visible()
+```
+
+`search_product(query)` searches the recipe catalogue. `open_recipe(title)` opens
+an already visible card by its exact title. `add_tag(tag_name)` submits tags only
+in the currently open recipe's detail view. Keep these steps separate so each
+action also works when a test starts with a recipe already open.
+
+The class also exposes `open_shopping_list()`, `add_product(name, amount, unit)`,
+`set_servings(value)`, `add_recipe_to_shopping()` and `show_shopping_list()`.
+Open the shopping list before adding a custom product. Open recipe details before
+changing servings or adding recipe ingredients; then use `show_shopping_list()`
+to follow the recipe's shopping-list link. `open_shopping_list()` uses the main
+navigation instead.
+
+Actions wait for the controls they operate on, without fixed sleeps. Keep scenario
+assertions, test-data setup, navigation and reloads in the test or its fixtures.
+After recording a scenario, replace repeated recorded interactions with these
+methods while retaining the generated assertions.
+
+`e2e/test_tags.py` demonstrates tag persistence after reload, tag filtering with
+the search text cleared, and filter visibility in a short desktop window and on
+mobile. The visibility assertion runs before interacting with the filter, so
+Playwright's automatic scrolling cannot hide a layout regression. These cases
+belong to the full regression suite; the seven PR sanity cases remain unchanged.
+
 ## Record a test
 
 ```powershell

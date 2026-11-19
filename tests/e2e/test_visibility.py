@@ -3,6 +3,7 @@
 import re
 
 from playwright.sync_api import Page, expect
+from ui_actions import ApplicationActions
 
 
 def test_hide_and_restore_recipe_across_collections(app_page: Page) -> None:
@@ -101,6 +102,7 @@ def test_editor_actions_stay_visible_while_scrolling(app_page: Page) -> None:
 def test_custom_tags_from_detail_and_editor(app_page: Page) -> None:
     """Add and remove own tags in the recipe view and in the editor."""
     page = app_page
+    app = ApplicationActions(page)
     endpoint = f"{page.url.rstrip('/')}/api/recipes"
     created = page.request.post(
         endpoint,
@@ -115,7 +117,7 @@ def test_custom_tags_from_detail_and_editor(app_page: Page) -> None:
     assert created.ok
     recipe_id = created.json()["id"]
     page.reload()
-    page.get_by_role("button", name="Otwórz przepis: Tag example", exact=True).click()
+    app.open_recipe("Tag example")
     field = page.locator("#detail-tags")
     field.fill("#Na imprezę, szybkie")
     field.press("Enter")
@@ -126,8 +128,7 @@ def test_custom_tags_from_detail_and_editor(app_page: Page) -> None:
         "Na imprezę",
         "szybkie",
     ]
-    field.fill("SZYBKIE")
-    page.get_by_role("button", name="Dodaj tag", exact=True).click()
+    app.add_tag("SZYBKIE")
     expect(chips).to_have_count(2)
     page.get_by_role("button", name="Usuń tag: Na imprezę", exact=True).click()
     expect(chips).to_have_count(1)

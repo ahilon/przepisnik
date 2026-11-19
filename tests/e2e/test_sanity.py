@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from playwright.sync_api import Page, expect
+from ui_actions import ApplicationActions
 
 from przepisnik.core.database import SqliteStore
 from przepisnik.core.models import ImageData, Ingredient, Recipe, Variant, VariantKind
@@ -61,37 +62,6 @@ def sanity_page(page: Page, app_url: str, sanity_recipe: Recipe) -> Page:
     return page
 
 
-def _open_recipe(page: Page) -> None:
-    """Open the controlled recipe through its collection card.
-
-    Args:
-        page: Browser showing the recipe collection.
-
-    Returns:
-        None: The recipe detail dialog is open.
-    """
-    page.get_by_role("button", name=f"Otwórz przepis: {RECIPE_TITLE}", exact=True).click()
-    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
-    return None
-
-
-def _add_recipe_to_shopping(page: Page) -> None:
-    """Add the recipe's original servings and open the shopping list.
-
-    Args:
-        page: Browser showing the controlled recipe's collection card.
-
-    Returns:
-        None: The shopping list contains the recipe ingredients.
-    """
-    _open_recipe(page)
-    page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
-    expect(page.locator(".shopping-notice")).to_contain_text("Dodano składniki")
-    page.get_by_role("button", name="Pokaż listę", exact=True).click()
-    expect(page.get_by_role("checkbox", name="Mam: Sanity rice", exact=True)).to_be_visible()
-    return None
-
-
 def test_recipe_list_loads_and_searches(sanity_page: Page) -> None:
     """Load the collection and locate a recipe using its title.
 
@@ -102,8 +72,9 @@ def test_recipe_list_loads_and_searches(sanity_page: Page) -> None:
         None: Search leaves the matching recipe visible.
     """
     page = sanity_page
+    app = ApplicationActions(page)
     expect(page.locator("#grid")).to_have_attribute("aria-busy", "false")
-    page.get_by_role("searchbox").fill(RECIPE_TITLE)
+    app.search_product(RECIPE_TITLE)
     expect(page.locator(".recipe-card")).to_have_count(1)
     expect(page.get_by_role("heading", name=RECIPE_TITLE, exact=True)).to_be_visible()
     return None
@@ -119,7 +90,9 @@ def test_recipe_details_show_products_steps_and_photo(sanity_page: Page) -> None
         None: Actual recipe details and image are rendered.
     """
     page = sanity_page
-    _open_recipe(page)
+    app = ApplicationActions(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
     expect(page.locator(".ingredients")).to_contain_text("Sanity rice — 100 g")
     expect(page.locator(".steps li")).to_have_text(["Cook the rice.", "Serve warm."])
     image = page.locator(".detail-hero")
@@ -140,6 +113,7 @@ def test_create_recipe_persists_after_reload(sanity_page: Page) -> None:
         None: Saved ingredients and instructions survive a page reload.
     """
     page = sanity_page
+    app = ApplicationActions(page)
     title = "Sanity created recipe"
     page.get_by_role("button", name="+ Dodaj przepis", exact=True).click()
     page.locator("#edit-title").fill(title)
@@ -150,7 +124,7 @@ def test_create_recipe_persists_after_reload(sanity_page: Page) -> None:
     page.get_by_role("button", name="Zapisz przepis", exact=True).click()
     expect(page.locator("#editor")).to_be_hidden()
     page.reload()
-    page.get_by_role("button", name=f"Otwórz przepis: {title}", exact=True).click()
+    app.open_recipe(title)
     expect(page.locator(".ingredients")).to_contain_text("Sanity oats — 50 g")
     expect(page.locator(".steps")).to_have_text("Mix the oats.")
     return None
@@ -166,14 +140,17 @@ def test_edit_recipe_persists_after_reload(sanity_page: Page) -> None:
         None: Updated quantities and instructions are read back from storage.
     """
     page = sanity_page
-    _open_recipe(page)
+    app = ApplicationActions(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
     page.get_by_role("button", name="Edytuj przepis", exact=True).click()
     page.locator('#editor [data-field="amount"]').first.fill("150")
     page.locator("#editor .step-editor textarea").first.fill("Cook slowly.")
     page.get_by_role("button", name="Zapisz przepis", exact=True).click()
     expect(page.locator("#editor")).to_be_hidden()
     page.reload()
-    _open_recipe(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
     expect(page.locator(".ingredients")).to_contain_text("Sanity rice — 150 g")
     expect(page.locator(".steps li").first).to_have_text("Cook slowly.")
     return None
@@ -189,15 +166,17 @@ def test_serving_count_recalculates_products(sanity_page: Page) -> None:
         None: Both product quantities double and reopening restores their base.
     """
     page = sanity_page
-    _open_recipe(page)
+    app = ApplicationActions(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
     portions = page.locator("#detail-servings")
     expect(portions).to_have_value("2")
-    portions.fill("4")
-    portions.press("Tab")
+    app.set_servings("4")
     expect(page.locator(".ingredients")).to_contain_text("Sanity rice — 200 g")
     expect(page.locator(".ingredients")).to_contain_text("Sanity water — 400 ml")
     page.reload()
-    _open_recipe(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
     expect(portions).to_have_value("2")
     expect(page.locator(".ingredients")).to_contain_text("Sanity rice — 100 g")
     return None
@@ -213,9 +192,15 @@ def test_recipe_products_persist_in_shopping_list(sanity_page: Page) -> None:
         None: Rice and water retain their quantities on the shopping list.
     """
     page = sanity_page
-    _add_recipe_to_shopping(page)
+    app = ApplicationActions(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
+    app.add_recipe_to_shopping()
+    expect(page.locator(".shopping-notice")).to_contain_text("Dodano składniki")
+    app.show_shopping_list()
+    expect(page.get_by_role("checkbox", name="Mam: Sanity rice", exact=True)).to_be_visible()
     page.reload()
-    page.get_by_role("button", name="Lista zakupów").click()
+    app.open_shopping_list()
     for name, amount, unit in [("Sanity rice", "100", "g"), ("Sanity water", "200", "ml")]:
         row = page.locator(".shopping-row").filter(has=page.get_by_text(name, exact=True))
         expect(row.get_by_label("Ilość", exact=True)).to_have_value(amount)
@@ -233,11 +218,17 @@ def test_shopping_checked_state_persists_after_reload(sanity_page: Page) -> None
         None: Checked rice remains checked while water remains to buy.
     """
     page = sanity_page
-    _add_recipe_to_shopping(page)
+    app = ApplicationActions(page)
+    app.open_recipe(RECIPE_TITLE)
+    expect(page.locator("#detail-title")).to_have_text(RECIPE_TITLE)
+    app.add_recipe_to_shopping()
+    expect(page.locator(".shopping-notice")).to_contain_text("Dodano składniki")
+    app.show_shopping_list()
+    expect(page.get_by_role("checkbox", name="Mam: Sanity rice", exact=True)).to_be_visible()
     page.get_by_role("checkbox", name="Mam: Sanity rice", exact=True).check()
     expect(page.get_by_role("region", name="Mam już")).to_contain_text("Sanity rice")
     page.reload()
-    page.get_by_role("button", name="Lista zakupów").click()
+    app.open_shopping_list()
     expect(page.get_by_role("checkbox", name="Mam: Sanity rice", exact=True)).to_be_checked()
     expect(page.get_by_role("checkbox", name="Mam: Sanity water", exact=True)).not_to_be_checked()
     return None

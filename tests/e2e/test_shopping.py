@@ -5,26 +5,15 @@ from http import HTTPStatus
 from importlib.metadata import version
 
 from playwright.sync_api import Page, expect
-
-
-def _open_list(page: Page) -> None:
-    page.get_by_role("button", name="Lista zakupów").click()
-    expect(page.locator("#shopping-status")).not_to_have_text("Wczytywanie listy…")
-
-
-def _add_product(page: Page, name: str, amount: str, unit: str) -> None:
-    page.get_by_label("Produkt", exact=True).fill(name)
-    page.locator("#shopping-amount").fill(amount)
-    page.locator("#shopping-unit").fill(unit)
-    page.get_by_role("button", name="Dodaj produkt", exact=True).click()
-    expect(page.get_by_role("checkbox", name=f"Mam: {name}", exact=True)).to_be_visible()
+from ui_actions import ApplicationActions
 
 
 def test_custom_product_edit_check_reload_and_remove(app_page: Page) -> None:
     """Keep custom weights and checked products after reloading the application."""
     page = app_page
-    _open_list(page)
-    _add_product(page, "Tomatoes", "500", "g")
+    app = ApplicationActions(page)
+    app.open_shopping_list()
+    app.add_product("Tomatoes", "500", "g")
     row = page.locator(".shopping-row").filter(has_text="Tomatoes")
     row.get_by_label("Ilość", exact=True).fill("750")
     row.get_by_role("button", name="Zapisz ilość: Tomatoes", exact=True).click()
@@ -33,7 +22,7 @@ def test_custom_product_edit_check_reload_and_remove(app_page: Page) -> None:
     expect(page.get_by_role("region", name="Mam już")).to_contain_text("Tomatoes")
     expect(page.locator("#shopping-count")).to_have_text("0")
     page.reload()
-    _open_list(page)
+    app.open_shopping_list()
     expect(page.get_by_role("checkbox", name="Mam: Tomatoes", exact=True)).to_be_checked()
     row = page.locator(".shopping-row").filter(has_text="Tomatoes")
     expect(row.get_by_label("Ilość", exact=True)).to_have_value("750")
@@ -45,8 +34,9 @@ def test_custom_product_edit_check_reload_and_remove(app_page: Page) -> None:
 def test_recipe_adds_scaled_ingredients_and_merges_compatible_units(app_page: Page) -> None:
     """Use the selected servings and convert kilograms when combining products."""
     page = app_page
-    _open_list(page)
-    _add_product(page, "Shopping rice", "0.1", "kg")
+    app = ApplicationActions(page)
+    app.open_shopping_list()
+    app.add_product("Shopping rice", "0.1", "kg")
     page.get_by_role("button", name="Zamknij listę zakupów", exact=True).click()
     response = page.request.post(
         f"{page.url.rstrip('/')}/api/recipes",
@@ -77,15 +67,14 @@ def test_recipe_adds_scaled_ingredients_and_merges_compatible_units(app_page: Pa
     recipe_id = response.json()["id"]
     original = page.request.get(f"{page.url.rstrip('/')}/api/recipes/{recipe_id}").json()
     page.reload()
-    page.get_by_role("button", name="Otwórz przepis: Shopping recipe", exact=True).click()
-    page.get_by_label("Liczba porcji", exact=True).fill("4")
-    page.get_by_label("Liczba porcji", exact=True).press("Tab")
-    page.get_by_role("button", name="Dodaj do listy zakupów", exact=True).click()
+    app.open_recipe("Shopping recipe")
+    app.set_servings("4")
+    app.add_recipe_to_shopping()
     expect(page.locator(".shopping-notice")).to_contain_text("Dodano składniki dla 4 porcji")
     expect(page.get_by_role("dialog", name="Shopping recipe")).to_be_visible()
     expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_hidden()
     expect(page.locator("#shopping-count")).to_have_text("3")
-    page.get_by_role("button", name="Pokaż listę", exact=True).click()
+    app.show_shopping_list()
     expect(page.get_by_role("dialog", name="Lista zakupów", exact=True)).to_be_visible()
     rice = page.locator(".shopping-row").filter(has_text="Shopping rice")
     expect(rice.get_by_label("Ilość", exact=True)).to_have_value("300")
@@ -100,7 +89,8 @@ def test_recipe_adds_scaled_ingredients_and_merges_compatible_units(app_page: Pa
 def test_other_device_updates_are_not_overwritten(app_page: Page) -> None:
     """Show conflict feedback and load the newer list instead of losing its edits."""
     page = app_page
-    _open_list(page)
+    app = ApplicationActions(page)
+    app.open_shopping_list()
     endpoint = f"{page.url.rstrip('/')}/api/shopping-list"
     response = page.request.post(
         endpoint,
@@ -125,25 +115,27 @@ def test_other_device_updates_are_not_overwritten(app_page: Page) -> None:
 def test_version_and_navigation_on_mobile(app_page: Page) -> None:
     """Expose the installed package version and usable shopping controls on a phone."""
     page = app_page
+    app = ApplicationActions(page)
     page.set_viewport_size({"width": 390, "height": 844})
     expect(page.locator("#app-version")).to_contain_text(version("przepisnik"))
     expect(page.get_by_text("DOMOWA KSIĄŻKA KUCHARSKA", exact=True)).to_have_count(0)
     expect(page.locator(".sidebar-note")).to_have_count(0)
-    _open_list(page)
-    _add_product(page, "Mobile product", "1", "szt.")
+    app.open_shopping_list()
+    app.add_product("Mobile product", "1", "szt.")
     assert page.locator("#shopping").evaluate("el => el.scrollWidth <= el.clientWidth")
 
 
 def test_clear_list_requires_confirmation_and_persists(app_page: Page) -> None:
     """Clear both checked and unchecked products only after confirmation."""
     page = app_page
-    _open_list(page)
+    app = ApplicationActions(page)
+    app.open_shopping_list()
     clear = page.get_by_role("button", name="Wyczyść listę", exact=True)
     expect(clear).to_be_disabled()
     expect(page.get_by_role("button", name="Odśwież listę")).to_have_count(0)
-    _add_product(page, "Keep", "1", "kg")
+    app.add_product("Keep", "1", "kg")
     assert clear.evaluate("el => getComputedStyle(el).color") == "rgb(179, 38, 30)"
-    _add_product(page, "Have", "2", "szt.")
+    app.add_product("Have", "2", "szt.")
     page.get_by_role("checkbox", name="Mam: Have", exact=True).check()
     expect(page.get_by_role("region", name="Mam już")).to_contain_text("Have")
     page.once("dialog", lambda dialog: dialog.dismiss())
@@ -155,15 +147,16 @@ def test_clear_list_requires_confirmation_and_persists(app_page: Page) -> None:
     expect(clear).to_be_disabled()
     expect(page.locator("#shopping-count")).to_have_text("0")
     page.reload()
-    _open_list(page)
+    app.open_shopping_list()
     expect(page.locator(".shopping-row")).to_have_count(0)
 
 
 def test_stale_clear_does_not_remove_another_devices_product(app_page: Page) -> None:
     """Reject clearing an old list after another client added a product."""
     page = app_page
-    _open_list(page)
-    _add_product(page, "Local", "1", "g")
+    app = ApplicationActions(page)
+    app.open_shopping_list()
+    app.add_product("Local", "1", "g")
     endpoint = f"{page.url.rstrip('/')}/api/shopping-list"
     current = page.request.get(endpoint).json()
     current["items"].append({"id": "other", "name": "Other device"})
@@ -177,11 +170,12 @@ def test_stale_clear_does_not_remove_another_devices_product(app_page: Page) -> 
 def test_export_prints_only_products_to_buy(app_page: Page) -> None:
     """Render a print sheet with unchecked products and open the print dialog."""
     page = app_page
-    _open_list(page)
+    app = ApplicationActions(page)
+    app.open_shopping_list()
     export = page.get_by_role("button", name="Eksportuj do PDF", exact=True)
     expect(export).to_be_disabled()
-    _add_product(page, "Print milk", "1.5", "l")
-    _add_product(page, "Print owned", "1", "szt.")
+    app.add_product("Print milk", "1.5", "l")
+    app.add_product("Print owned", "1", "szt.")
     page.get_by_role("checkbox", name="Mam: Print owned", exact=True).check()
     expect(page.get_by_role("region", name="Mam już")).to_contain_text("Print owned")
     page.evaluate("() => { window.__printed = 0; window.print = () => window.__printed++; }")
