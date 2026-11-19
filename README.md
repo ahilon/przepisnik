@@ -446,6 +446,7 @@ after a Playwright upgrade in `uv.lock`:
 
 ```bash
 uv run playwright install chromium        # Linux: add --with-deps for system libraries
+uv run pytest tests/e2e -m sanity --strict-markers  # short PR browser checks
 uv run pytest tests/e2e                   # starts its own server on temporary data
 uv run pytest tests/e2e --headed          # watch the browser
 ```
@@ -516,20 +517,22 @@ uvx --python 3.12 --from checkov==3.4.3 checkov
 ### Continuous integration
 
 Each pull request runs separate GitHub Actions workflows. Ruff, Mypy, tests and
-Checkov skip drafts until ready for review. Secrets runs on every push and PR,
-including drafts and documentation changes. Newer updates cancel outdated runs
-of the same workflow/ref; Secrets keeps push and PR runs separate.
+Checkov skip drafts until ready for review. Secrets runs on PRs (including drafts
+and documentation changes) and pushes to main. Feature branches without a PR no
+longer trigger a separate Secrets push run. Newer updates cancel outdated runs
+of the same workflow/ref.
 
 | Workflow | Check name | Runs | Purpose |
 | --- | --- | --- | --- |
 | `lint.yml` | Ruff | every PR | Ruff lint and formatting |
 | `typecheck.yml` | Mypy | every PR | Strict mypy for `src` and `tests/unit` |
 | `tests.yml` | Unit tests | every PR | Non-browser tests with at least 80% coverage |
-| `e2e.yml` | E2E tests | every PR | Playwright scenarios; traces uploaded on failure |
+| `e2e.yml` | E2E tests | every PR | Seven core browser sanity cases; traces uploaded on failure |
 | `checkov.yml` | Checkov | every PR | Dockerfile, workflow and secret checks |
-| `secrets.yml` | Secrets | every push and PR, including drafts | Gitleaks scans fetched Git history with redacted output |
-| `docker.yml` | Docker build / Instance container | PRs changing the image or tests | Checks demo readiness, instance startup/persistence and browser E2E against the image |
-| `release.yml` | Release images | runtime changes on PR/main; manual dispatch | Tests AMD64/ARM64 and publishes the tested pair to GHCR only from main |
+| `secrets.yml` | Secrets | PRs including drafts; pushes to main | Gitleaks scans fetched Git history with redacted output |
+| `docker.yml` | Docker build / Instance container | PRs changing the image or tests | Checks demo readiness and instance Compose/startup/persistence without repeated browser tests |
+| `release.yml` | Release images | runtime changes on main; manual dispatch | Runs full E2E on AMD64/ARM64 and publishes the tested pair to GHCR only from main |
+| `pr-status-labels.yml` | PR status labels | PR closed/reopened | Maintains `rejected` only for closed, unmerged PRs; no checkout or PR code execution |
 
 Require Ruff, Mypy, Unit tests, E2E tests, Checkov and Secrets in the `main` branch ruleset.
 Keep Docker build optional: path-filtered workflows do not run on unrelated pull

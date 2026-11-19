@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [1.12.1] - Unreleased
+
+- Run seven core browser sanity cases on PRs and retain full AMD64/ARM64 image
+  regression and stable publication only after merge to main.
+- Remove duplicated PR release/container E2E runs while retaining Compose checks;
+  scan PRs and main pushes without a separate feature-branch Secrets push run.
+- Apply type-based PR labels through gh and automatically maintain rejected on
+  closed, unmerged PRs, clearing it when they are reopened or merged.
+
 ## [1.12.0] - Unreleased
 
 - Default to Wspólne, combining one female and one male serving when products,

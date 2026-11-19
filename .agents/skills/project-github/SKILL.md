@@ -48,7 +48,7 @@ missing prerequisite rather than silently skipping verification.
 
 Stop before commit/push/PR on a failed, missing or incomplete required local check. Keep evidence tied to the final candidate. If other dirty files influence checks, isolate the intended candidate without moving or discarding user work; do not claim the committed candidate passed solely from a different working tree. Recheck affected controls after edits, and repeat the suite after upstream integration invalidates the previous result. Avoid retries without a concrete reason.
 
-Local browser E2E are outside this skill's default execution scope. Inspect their remote results: currently `.github/workflows/e2e.yml` runs on PRs and starts its own Python server. The release workflow validates AMD64/ARM64 on PRs and publishes tested images only from main after merge. PR publication is not image publication or deployment. Do not claim browser tests or image publication passed without evidence.
+Local browser E2E are outside this skill's default execution scope. Inspect their remote results: `.github/workflows/e2e.yml` runs seven server-backed sanity cases on PRs and retains the E2E tests check name. The release workflow runs after merge to main, executes the full browser suite against AMD64/ARM64 images and publishes only the tested pair. PR sanity does not establish full regression, image publication or deployment. Do not claim browser tests or image publication passed without evidence.
 
 ## Commit, push and create the PR
 
@@ -58,15 +58,16 @@ Only execute the operations authorized by the user:
 - Before commit, scan the final staged diff with `gitleaks git --pre-commit --staged --config .gitleaks.toml --redact=100 --no-banner .`, using the version pinned in CI. A prior clean history scan does not cover newly staged content. Stop on findings or an incomplete scan; report only redacted locations, never raw secrets.
 - Push the task branch with its upstream. Before creating a PR, check for an existing open PR for the same head/base. For an existing PR, reuse it rather than create another; update its title/body only within the authorized scope.
 - Write a UTF-8 PR body file under ignored `local-artifacts/` (or the system temporary directory), preserving real newlines. Pass the body through `--body-file`, never shell-interpolate multiline content.
+- Apply the primary PR label according to [references/pr-labels.md](references/pr-labels.md). Reuse existing repository labels, add the mapped label on creation/update through gh, preserve other labels and verify the resulting labels. These metadata operations belong to the same approved publication; do not request per-label approval.
 
 ```text
-gh pr create --base <base> --head <branch> --title <title> --body-file <file>
+gh pr create --base <base> --head <branch> --title <title> --body-file <file> --label <mapped-label>
 ```
 
 - Do not use `gh pr create --dry-run` as a read-only preview; it can still push. Before retrying a failed network command, verify whether the push or PR creation already succeeded.
-- Use `gh pr view <number> --json url,headRefOid,statusCheckRollup` and `gh pr checks <number>` to report the published SHA and remote outcomes. Checks may not appear immediately. Pending, skipped or absent checks do not establish success. Treat `gh` exit codes with their documented meaning, not every nonzero result as a tooling failure. Do not wait indefinitely or continuously rerun workflows.
+- Use `gh pr view <number> --json url,labels,headRefOid,statusCheckRollup` and `gh pr checks <number>` to report the published SHA and remote outcomes. Checks may not appear immediately. Pending, skipped or absent checks do not establish success. Treat `gh` exit codes with their documented meaning, not every nonzero result as a tooling failure. Do not wait indefinitely or continuously rerun workflows.
 
-The PR body should explain the problem/result, material implementation details, version bump, actual validation and limitations. Return the PR URL, commit SHA, version before/after, local results and remote status. Distinguish “PR opened, CI pending” from “required CI passed.”
+The PR body should explain the problem/result, material implementation details, version bump, actual validation and limitations. Return the PR URL, commit SHA, version before/after, applied labels, local results and remote status. Distinguish “PR opened, CI pending” from “required CI passed.”
 
 Do not merge, enable auto-merge, publish releases, move stable tags, change repository protection or deploy as part of PR publication. A later explicit merge request uses merge mode and current required-check evidence.
 
