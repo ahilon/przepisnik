@@ -1,0 +1,53 @@
+name: PR status labels
+
+on:
+  pull_request_target:
+    types: [closed, reopened]
+
+permissions: {}
+
+concurrency:
+  group: pr-status-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    name: Update PR status label
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      # Metadata only: no checkout, PR code, title/body interpolation or artifacts.
+      - name: Reconcile rejected with the current PR state
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER" \
+            --jq '[.state, .merged, .labels[].name] | @tsv')
+          IFS=$'\t' read -r -a fields <<< "$status"
+          state=${fields[0]}
+          merged=${fields[1]}
+          [[ "$state" == open || "$state" == closed ]]
+          [[ "$merged" == true || "$merged" == false ]]
+          has_rejected=false
+          for label in "${fields[@]:2}"; do
+            if [[ "$label" == rejected ]]; then
+              has_rejected=true
+            fi
+          done
+
+          if [[ "$state" == closed && "$merged" == false ]]; then
+            if [[ "$has_rejected" == false ]]; then
+              printf '%s\n' '{"labels":["rejected"]}' | \
+                gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/labels" \
+                  --input - --silent
+            fi
+          elif [[ "$has_rejected" == true ]]; then
+            gh api --method DELETE \
+              "repos/$GH_REPO/issues/$PR_NUMBER/labels/rejected" --silent
+          fi

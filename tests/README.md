@@ -3,6 +3,21 @@
 We use **pytest** with **Playwright** for browser end-to-end (E2E) tests.
 Tests marked `@pytest.mark.sanity` cover basic application functionality.
 
+## PR sanity and post-merge regression
+
+Pull requests run seven short sanity cases from `e2e/test_sanity.py`: collection
+loading/search, recipe details/photo, recipe creation, recipe editing, serving
+scaling, shopping quantities after reload and shopping checked-state persistence.
+They cover those core journeys only. The remaining browser regressions, including
+Wspólne, PDF export, conflicts and mobile layout, remain in the full suite.
+
+The PR check keeps its existing name, **E2E tests**, but selects `-m sanity` with
+strict markers and requires a positive test collection with every selected case
+passed. The release workflow runs after a push to main (normally a PR merge) and
+runs the full browser suite without a marker filter against both AMD64 and ARM64
+images. Only successful full runs and the other release gates allow stable
+publication. No release builds run automatically on PRs.
+
 Run all commands from the project root.
 
 ## Setup
@@ -22,11 +37,11 @@ retention policy; they are not reused by later tests.
 
 ### Container backend in Actions
 
-The `Instance container` job in `.github/workflows/docker.yml` builds the production
-image and runs the same browser scenarios against that exact local image ID:
+The post-merge architecture jobs in `.github/workflows/release.yml` build the
+production image and run the complete browser suite against that exact image ID:
 
 ```sh
-uv run --locked pytest tests/e2e --container-image "$CONTAINER_TEST_IMAGE" \
+uv run --locked pytest tests/e2e --container-image "$RELEASE_IMAGE_ID" \
   --browser chromium --tracing retain-on-failure --output test-results
 ```
 
@@ -40,6 +55,8 @@ Windows' synthetic UID/GID. Its healthcheck must pass before
 browser navigation. Teardown saves both log streams under
 `test-results/container-logs/` and removes the test container even after a failure.
 The normal backend above remains the default when no image is specified.
+The separate PR `Instance container` job retains Compose/startup/persistence
+checks without running another browser suite.
 
 Release jobs additionally use `--release-results <file.json>`. The collector counts
 selected test identities, failures across all phases, skips and xfails/xpasses;
@@ -81,8 +98,8 @@ To include a test in the sanity suite, add `import pytest` and decorate it with
 # All browser tests
 uv run pytest tests/e2e
 
-# Sanity tests only
-uv run pytest tests/e2e -m sanity
+# PR sanity cases only
+uv run --locked pytest tests/e2e -m sanity --strict-markers
 
 # One file, with a visible browser
 uv run pytest tests/e2e/test_recipe_list.py --headed

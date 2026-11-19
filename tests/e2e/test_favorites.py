@@ -2,11 +2,9 @@
 
 import re
 
-import pytest
 from playwright.sync_api import Page, expect
 
 
-@pytest.mark.sanity
 def test_add_and_remove_favorite(app_page: Page) -> None:
     """Persist a favorite across reload and remove it from the favorites filter."""
     page = app_page

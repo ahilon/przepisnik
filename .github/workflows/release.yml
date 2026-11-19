@@ -3,22 +3,19 @@ name: Release images
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# PR updates cancel stale validation; main commits have an independent publication lock.
+# Every main commit has an independent validation run and a shared publication lock.
 concurrency:
-  group: release-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  group: release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   changes:
     name: Release changes
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -31,7 +28,7 @@ jobs:
       - name: Classify runtime changes
         id: classify
         env:
-          BEFORE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          BEFORE: ${{ github.event.before || github.sha }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           args=(--before "$BEFORE" --after "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT")
@@ -109,7 +106,8 @@ jobs:
           --image "$RELEASE_IMAGE_ID" --artifacts "$RUNNER_TEMP/smoke-$ARCHITECTURE"
       - name: Install browser dependencies
         run: uv run --locked playwright install --with-deps chromium
-      - name: Run isolated browser E2E against this image
+      # No marker filter: stable requires the complete browser regression suite.
+      - name: Run full isolated browser E2E against this image
         run: >-
           uv run --locked pytest tests/e2e -p no:cacheprovider
           --container-image "$RELEASE_IMAGE_ID" --browser chromium

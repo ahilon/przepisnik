@@ -1,8 +1,10 @@
 # Tested images and Raspberry Pi deployment
 
-The `Release images` Actions workflow validates pull requests and, after merge,
-publishes the production `app` image from `main` to **ghcr.io/ahilon/przepisnik**.
-It never embeds personal data or demo recipes. PR jobs cannot publish images.
+The `Release images` Actions workflow starts on pushes to `main` (normally after
+merge) or manual dispatch. It validates and publishes the production `app` image
+from `main` to **ghcr.io/ahilon/przepisnik**. PRs run browser sanity and the normal
+quality checks, without release builds or duplicated release checks.
+Images never embed personal data or demo recipes. PR jobs cannot publish images.
 
 ## Release contract
 

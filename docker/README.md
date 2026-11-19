@@ -6,8 +6,9 @@ the same installed application/runtime layer and non-root user (UID/GID 10001).
 
 The Docker workflow checks demo and instance images on matching pull requests.
 The separate [release workflow](RELEASE.md) validates both AMD64/ARM64 and publishes
-tested production images to GHCR after merge to main. Playwright runs against the
-built instance image. Personal data remains outside every distributable image.
+tested production images to GHCR after merge to main. Full Playwright regression
+runs against each release image; PRs run a short server-backed sanity suite.
+Personal data remains outside every distributable image.
 
 ## Configure an instance
 
@@ -91,10 +92,10 @@ point Actions jobs at a real instance or its backups.
 3. Saves a recipe through the API and copies a PNG into the disposable volume.
 4. Recreates without rebuilding, confirms the container ID changed, checks the
    persisted recipe/PNG and runs `check-data` against the retained database.
-5. Runs browser E2E against the exact built image ID, with a separate container,
-   data directory and configuration per test. Failure artifacts include browser
-   traces and container logs.
-6. Removes only the runner's explicitly named CI project and volume after the job.
+5. Removes only the runner's explicitly named CI project and volume after the job.
+
+This job does not repeat browser E2E. The post-merge release jobs run the full
+browser suite against the exact AMD64 and ARM64 images before publication.
 
 Without `--container-image`, `tests/e2e` starts its own Python server; see
 [tests/README.md](../tests/README.md) for backend selection. The separate

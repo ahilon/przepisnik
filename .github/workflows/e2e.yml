@@ -1,4 +1,4 @@
-name: E2E
+name: E2E sanity
 
 on:
   pull_request:
@@ -35,10 +35,16 @@ jobs:
 
       - run: uv run playwright install --with-deps chromium
 
-      # Each test starts its own server on disposable copies of the demo fixtures.
-      - run: >-
-          uv run pytest tests/e2e -p no:cacheprovider
+      # Keep the check name stable for existing branch rules. Full E2E run after merge.
+      # Each sanity case uses an isolated server and disposable data.
+      - name: Run core browser sanity scenarios
+        run: >-
+          uv run --locked pytest tests/e2e -m sanity --strict-markers -p no:cacheprovider
           --browser chromium --tracing retain-on-failure --output test-results
+          --release-results "${{ runner.temp }}/sanity-results.json"
+
+      - name: Require every selected sanity test to pass
+        run: uv run --locked python -m scripts.release verify-tests "${{ runner.temp }}/sanity-results.json"
 
       - name: Upload Playwright traces
         if: ${{ failure() }}

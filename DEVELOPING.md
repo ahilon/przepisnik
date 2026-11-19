@@ -199,9 +199,10 @@ Changing skill does not itself justify running the same checks twice.
 
 ### Secret scanning
 
-The `Secrets` workflow runs Gitleaks 8.30.1 on every push and PR, including drafts
-and documentation-only changes. It uses a full-history checkout, upstream default
-rules extended by `.gitleaks.toml`, a pinned CLI archive SHA-256 and redacted output.
+The `Secrets` workflow runs Gitleaks 8.30.1 on PRs, including drafts and
+documentation-only changes, and on pushes to main. It uses a full-history checkout,
+upstream default rules extended by `.gitleaks.toml`, a pinned CLI archive SHA-256
+and redacted output.
 No Gitleaks Action license or extra repository token is required. Add `Secrets`
 to the base-branch required checks after its first successful CI run; adding the
 workflow file alone does not enforce branch protection.
@@ -290,10 +291,11 @@ The exact verification commands live in the
 configuration take precedence when commands change. `scripts/check.cmd` is a
 convenience command, not the whole PR verification suite.
 
-Default local verification excludes browser E2E. GitHub runs isolated Python-server
-and container-backed E2E on PRs. The [release workflow](docker/RELEASE.md) validates
-AMD64/ARM64 and publishes the tested image pair only from main. PR validation does
-not prove registry publication. For manual E2E setup and execution, see
+Default local verification excludes browser E2E. GitHub runs seven isolated
+Python-server sanity cases on PRs; the existing check name remains E2E tests.
+The [release workflow](docker/RELEASE.md) runs after merge to main, validates the
+full browser suite against AMD64/ARM64 and publishes only the tested image pair.
+PR sanity does not prove full regression or registry publication. For E2E setup, see
 [tests/README.md](tests/README.md).
 
 ## Branches and versions
@@ -301,6 +303,15 @@ not prove registry publication. For manual E2E setup and execution, see
 Branches use `<type>/<kebab-case-summary>`. Commit messages and PR titles use
 `<type>(<optional-scope>): <summary>`. Types are `feat`, `fix`, `docs`, `skill`,
 `workflow`, `test`, `refactor`, `perf`, `build` and `chore`.
+
+During an authorized PR publication, the GitHub skill adds the label mapped from
+the PR title type through `gh`, preserving existing labels. The canonical
+[PR label mapping](.agents/skills/project-github/references/pr-labels.md) defines
+`fix`, `skill`, `test`/`tests`, `feat`, `docs`, `chore`, `workflow` and `build`;
+other types have no automatic label until a mapping is agreed. Type labels add no
+CI check. A separate metadata-only close/reopen workflow keeps `rejected` on
+closed, unmerged PRs and removes it when a PR is reopened or merged. It preserves
+other labels and does not run PR code.
 
 - Major: breaking compatibility, or an explicit major-release decision.
 - Minor: new compatible functionality.
