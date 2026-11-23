@@ -1,0 +1,62 @@
+name: PR product version
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+concurrency:
+  group: pr-product-version-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    name: Comment merged product version
+    if: ${{ github.event.pull_request.merged && github.event.pull_request.base.ref == 'main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+    steps:
+      # Read merged metadata only; never check out or execute PR code.
+      - name: Read version and upsert the bot comment
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          metadata="$RUNNER_TEMP/product-version.toml"
+          gh api "repos/$GH_REPO/contents/pyproject.toml?ref=$MERGE_SHA" \
+            --header 'Accept: application/vnd.github.raw+json' > "$metadata"
+          version=$(python3 - "$metadata" <<'PY'
+          import re
+          import sys
+          import tomllib
+
+          with open(sys.argv[1], "rb") as source:
+              version = tomllib.load(source)["project"]["version"]
+          if not isinstance(version, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+              raise SystemExit("Expected a numeric major.minor.patch product version")
+          print(version)
+          PY
+          )
+          marker='<!-- przepisnik-product-version -->'
+          comment_id=$(gh api --paginate --slurp \
+            "repos/$GH_REPO/issues/$PR_NUMBER/comments?per_page=100" \
+            --jq '[.[][] | select(.user.login == "github-actions[bot]" and .user.type == "Bot") | select(.body | startswith("<!-- przepisnik-product-version -->"))][0].id // empty')
+          payload="$RUNNER_TEMP/product-version-comment.json"
+          jq -n --arg body "$marker"$'\n'"Product version: **$version**" \
+            '{body: $body}' > "$payload"
+          if [[ -n "$comment_id" ]]; then
+            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+              --input "$payload" --silent
+          else
+            gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
+              --input "$payload" --silent
+          fi
