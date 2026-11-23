@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [1.13.1] - Unreleased
+
+- Comment the product version on merged PRs using their exact merge commit,
+  updating the existing bot comment on reruns without executing PR code.
+
 ## [1.13.0] - Unreleased
 
 - Offer an explicit merge for identical female and male portions, storing one

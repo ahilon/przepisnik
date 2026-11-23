@@ -300,6 +300,13 @@ PR sanity does not prove full regression or registry publication. For E2E setup,
 
 ## Branches and versions
 
+After a PR is merged into `main`, the `PR product version` workflow adds a bot
+comment such as `Product version: **1.13.0**`. It reads `pyproject.toml` at that
+PR's merge commit, without checking out or executing PR code. Reruns update the
+existing marked bot comment. Closed, unmerged PRs are ignored, and historical
+merges are not backfilled. This records the merged code version; it does not
+confirm image publication or deployment.
+
 Branches use `<type>/<kebab-case-summary>`. Commit messages and PR titles use
 `<type>(<optional-scope>): <summary>`. Types are `feat`, `fix`, `docs`, `skill`,
 `workflow`, `test`, `refactor`, `perf`, `build` and `chore`.
