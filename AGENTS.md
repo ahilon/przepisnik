@@ -28,6 +28,8 @@ Use these rules in Codex and Claude Code. Canonical procedures live in
   procedure may perform the authorized named-stash/sync/restore sequence; other
   roles must not automatically stash/reset/rebase. No force push or destructive
   cleanup without explicit authorization.
+- Use `project-notes` to save or recall project knowledge in Obsidian. At session
+  wrap-up or an agreed project milestone, offer a handoff once; write it on request.
 - Use `przepisnik` / `przepisnik-manage` for recipe operations, not direct database
   edits. Keep personal data, credentials and `local-artifacts/` out of commits.
 

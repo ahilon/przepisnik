@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [1.13.2] - Unreleased
+
+- Add a shared project-notes skill for saving and recalling Przepisnik decisions,
+  plans and handoffs in the local Obsidian vault from Codex or Claude Code.
+
 ## [1.13.1] - Unreleased
 
 - Comment the product version on merged PRs using their exact merge commit,
