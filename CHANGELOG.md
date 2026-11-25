@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## [1.13.3] - Unreleased
+
+- Trigger product version comments from pushes to main, resolve each merged PR
+  by its merge commit and fix comment lookup across GitHub API pages.
+- Cache Playwright browsers with actions/cache v5 on Node.js 24.
+
 ## [1.13.2] - Unreleased
 
 - Add a shared project-notes skill for saving and recalling Przepisnik decisions,

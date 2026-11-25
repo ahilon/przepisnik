@@ -1,19 +1,19 @@
 name: PR product version
 
 on:
-  pull_request_target:
-    types: [closed]
+  push:
+    branches: [main]
 
 permissions: {}
 
 concurrency:
-  group: pr-product-version-${{ github.event.pull_request.number }}
+  group: pr-product-version-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
   comment:
     name: Comment merged product version
-    if: ${{ github.event.pull_request.merged && github.event.pull_request.base.ref == 'main' }}
+    if: ${{ !github.event.created && !github.event.deleted && !github.event.forced }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -22,19 +22,29 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      BEFORE_SHA: ${{ github.event.before }}
+      AFTER_SHA: ${{ github.event.after }}
     steps:
-      # Read merged metadata only; never check out or execute PR code.
-      - name: Read version and upsert the bot comment
+      # Inspect GitHub metadata only; never check out or execute PR code.
+      - name: Comment the exact merged version on each associated PR
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
-          metadata="$RUNNER_TEMP/product-version.toml"
-          gh api "repos/$GH_REPO/contents/pyproject.toml?ref=$MERGE_SHA" \
-            --header 'Accept: application/vnd.github.raw+json' > "$metadata"
-          version=$(python3 - "$metadata" <<'PY'
+          [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ && "$AFTER_SHA" =~ ^[0-9a-f]{40}$ ]]
+          commits=$(gh api --paginate \
+            "repos/$GH_REPO/compare/$BEFORE_SHA...$AFTER_SHA?per_page=100" \
+            --jq '.commits[].sha')
+
+          upsert_comment() {
+            local pr_number=$1 merge_sha=$2
+            local metadata="$RUNNER_TEMP/product-version.toml"
+            local payload="$RUNNER_TEMP/product-version-comment.json"
+            local marker='<!-- przepisnik-product-version -->'
+            local version comment_ids comment_id
+
+            gh api "repos/$GH_REPO/contents/pyproject.toml?ref=$merge_sha" \
+              --header 'Accept: application/vnd.github.raw+json' > "$metadata"
+            version=$(python3 - "$metadata" <<'PY'
           import re
           import sys
           import tomllib
@@ -45,18 +55,32 @@ jobs:
               raise SystemExit("Expected a numeric major.minor.patch product version")
           print(version)
           PY
-          )
-          marker='<!-- przepisnik-product-version -->'
-          comment_id=$(gh api --paginate --slurp \
-            "repos/$GH_REPO/issues/$PR_NUMBER/comments?per_page=100" \
-            --jq '[.[][] | select(.user.login == "github-actions[bot]" and .user.type == "Bot") | select(.body | startswith("<!-- przepisnik-product-version -->"))][0].id // empty')
-          payload="$RUNNER_TEMP/product-version-comment.json"
-          jq -n --arg body "$marker"$'\n'"Product version: **$version**" \
-            '{body: $body}' > "$payload"
-          if [[ -n "$comment_id" ]]; then
-            gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
-              --input "$payload" --silent
-          else
-            gh api --method POST "repos/$GH_REPO/issues/$PR_NUMBER/comments" \
-              --input "$payload" --silent
-          fi
+            )
+            comment_ids=$(gh api --paginate \
+              "repos/$GH_REPO/issues/$pr_number/comments?per_page=100" \
+              --jq '.[] | select(.user.login == "github-actions[bot]" and .user.type == "Bot") | select(.body | startswith("<!-- przepisnik-product-version -->")) | .id')
+            comment_id=${comment_ids%%$'\n'*}
+            jq -n --arg body "$marker"$'\n'"Product version: **$version**" \
+              '{body: $body}' > "$payload"
+            if [[ -n "$comment_id" ]]; then
+              gh api --method PATCH "repos/$GH_REPO/issues/comments/$comment_id" \
+                --input "$payload" --silent
+            else
+              gh api --method POST "repos/$GH_REPO/issues/$pr_number/comments" \
+                --input "$payload" --silent
+            fi
+          }
+
+          while IFS= read -r merge_sha; do
+            [[ -n "$merge_sha" ]] || continue
+            [[ "$merge_sha" =~ ^[0-9a-f]{40}$ ]]
+            # An associated PR can include this commit without having merged at it.
+            pull_requests=$(gh api --paginate \
+              "repos/$GH_REPO/commits/$merge_sha/pulls?per_page=100" \
+              --jq ".[] | select(.base.ref == \"main\" and .merged_at != null and .merge_commit_sha == \"$merge_sha\") | .number")
+            while IFS= read -r pr_number; do
+              [[ -n "$pr_number" ]] || continue
+              [[ "$pr_number" =~ ^[1-9][0-9]*$ ]]
+              upsert_comment "$pr_number" "$merge_sha"
+            done <<< "$pull_requests"
+          done <<< "$commits"
