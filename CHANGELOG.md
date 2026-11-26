@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [1.14.0] - Unreleased
+
+- Estimate calories and macronutrients for the current recipe variant in the
+  editor, and keep the AI provenance when the user saves the estimate.
+- Enable estimates with the optional server-side api_key environment variable.
+  Without it, the estimate button stays visible and disabled.
+
 ## [1.13.3] - Unreleased
 
 - Trigger product version comments from pushes to main, resolve each merged PR

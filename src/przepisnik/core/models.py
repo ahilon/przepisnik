@@ -152,7 +152,7 @@ class VariantData(_Model):
         default=1, description="Number of servings that nutrition and ingredients describe."
     )
     nutrition: Nutrition | None = Field(
-        default=None, description="Only values stated by the source; never estimated."
+        default=None, description="Totals for all servings. Imports use only source values."
     )
     ingredients: list[Ingredient] = Field(min_length=1)
 
@@ -166,6 +166,7 @@ class Variant(VariantData):
         description="Variant-specific steps; None means the recipe steps apply.",
     )
     source: Source | None = None
+    nutrition_estimated: bool = False
 
 
 class RecipeDraft(_Model):

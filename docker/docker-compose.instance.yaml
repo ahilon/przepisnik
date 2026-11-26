@@ -11,6 +11,7 @@ services:
     environment:
       PRZEPISNIK_DATA: /data
       PRZEPISNIK_CONFIG: /config/server.toml
+      api_key: ${api_key:-}
     volumes:
       - instance-data:/data
       - type: bind

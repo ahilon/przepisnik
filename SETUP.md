@@ -54,6 +54,48 @@ override file values; `--origin` replaces the entire origin list. Network settin
 do not currently use environment variables. Changing the listener port does not
 rewrite explicitly configured origins: set them to the actual browser URLs.
 
+## AI nutrition estimates
+
+To enable **Oszacuj wartości odżywcze z AI** while editing a recipe, set
+`api_key` in the **server process environment**. With a missing or empty
+key, the button stays visible and disabled. Use the exact lowercase name,
+especially on Linux and in Docker. The estimate covers all servings
+of the selected variant. Save the recipe to keep the values and their AI label.
+
+Keep the key in a private environment file outside the Git checkout, for example
+`~/.config/przepisnik/instance.env` (`%USERPROFILE%\.config\przepisnik\instance.env`
+on Windows). Create the parent folder if needed and put this line in the file.
+Replace the placeholder with your own OpenAI project API key.
+
+```dotenv
+api_key=replace-with-your-project-key
+```
+
+For a server run directly with uv, pass the file at startup.
+
+```powershell
+uv run --env-file "$env:USERPROFILE\.config\przepisnik\instance.env" przepisnik serve
+```
+
+```sh
+chmod 600 "$HOME/.config/przepisnik/instance.env"
+uv run --env-file "$HOME/.config/przepisnik/instance.env" przepisnik serve
+```
+
+For the release Docker Compose deployment on Linux or Raspberry Pi, run this from
+the checkout. Keep any existing Compose settings in the same environment file.
+
+```sh
+docker compose --env-file "$HOME/.config/przepisnik/instance.env" \
+  -f docker/docker-compose.release.yaml up -d --force-recreate app
+```
+
+For a local build, use `docker/docker-compose.instance.yaml` with `--build`.
+Restart the direct server or recreate the container after changing the key.
+The app sends ingredient names, quantities and the serving count to OpenAI when
+someone clicks the button. Anyone who can use the editor on a configured instance
+can request a billed estimate. Keep the key on the host running the server.
+
 ## Access from your home network
 
 Example local configuration (replace both names and IP with your own):

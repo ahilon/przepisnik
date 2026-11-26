@@ -52,11 +52,15 @@ class CombinedVariantBuilder:
             if combined is None:
                 return None
             ingredients.append(combined)
+        nutrition = self._nutrition(female, male)
         return Variant(
             servings=COMBINED_SERVINGS,
             ingredients=ingredients,
             steps=female_steps.copy(),
-            nutrition=self._nutrition(female, male),
+            nutrition=nutrition,
+            nutrition_estimated=(
+                nutrition is not None and (female.nutrition_estimated or male.nutrition_estimated)
+            ),
         )
 
     @staticmethod

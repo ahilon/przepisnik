@@ -1,6 +1,13 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
 const COMBINED_VARIANT = "combined";
+const NUTRITION_FIELDS = [
+  ["kcal", "Kalorie (kcal)", "kcal"],
+  ["protein_g", "Białko (g)", "białko · g"],
+  ["fat_g", "Tłuszcz (g)", "tłuszcz · g"],
+  ["carbs_g", "Węglowodany (g)", "węglowodany · g"]
+];
+const AI_NUTRITION_LABEL = "Szacunek AI";
 const labels = {
   breakfast: "Śniadanie", lunch: "Obiad", dinner: "Kolacja", snack: "Przekąska",
   female: "Kobieta", male: "Mężczyzna", family: "Wspólne", combined: "Dla dwojga",
@@ -411,7 +418,7 @@ function renderDetail() {
     servingSummary.textContent = servingDescription(value);
     renderIngredientList(list, variant.ingredients, ratio);
     inner.querySelectorAll(".nutrition strong").forEach((item, index) => {
-      item.textContent = number(variant.nutrition[["kcal", "protein_g", "fat_g", "carbs_g"][index]] * ratio);
+      item.textContent = number(variant.nutrition[NUTRITION_FIELDS[index][0]] * ratio);
     });
   });
   for (const [button, delta] of [[decrease, -0.5], [increase, 0.5]]) {
@@ -428,13 +435,17 @@ function renderDetail() {
   const servingSummary = element("p", "detail-hint", servingDescription(servings)); inner.append(servingSummary);
   if (variant.nutrition) {
     const nutrition = element("div", "nutrition");
-    for (const [key, label] of [["kcal", "kcal"], ["protein_g", "białko · g"], ["fat_g", "tłuszcz · g"], ["carbs_g", "węglowodany · g"]]) {
+    for (const [key, , label] of NUTRITION_FIELDS) {
       const item = element("div");
       item.append(element("strong", "", number(variant.nutrition[key] * factor)), element("span", "", label));
       nutrition.append(item);
     }
     inner.append(nutrition);
-  } else inner.append(element("p", "detail-hint", "Brak wartości odżywczych w źródle."));
+    if (variant.nutrition_estimated) {
+      const label = selectedVariant === COMBINED_VARIANT ? "Zawiera wartości szacowane przez AI" : AI_NUTRITION_LABEL;
+      inner.append(element("p", "detail-hint", label));
+    }
+  } else inner.append(element("p", "detail-hint", "Brak wartości odżywczych."));
   const columns = element("div", "detail-columns");
   const ingredients = element("section");
   ingredients.append(element("h3", "", "Składniki"));
@@ -581,8 +592,11 @@ function readIngredients(fieldset) {
     const amount = amountText === "" ? null : Number(amountText);
     const unit = row.querySelector('[data-field="unit"]').value.trim() || null;
     if (!name) throw new Error("Podaj nazwę każdego składnika.");
-    if (name === original.name && amount === (original.amount ?? null) && unit === (original.unit || null)) return original;
-    return { ...original, name, amount, unit, raw: null };
+    const quantityChanged = amount !== (original.amount ?? null) || unit !== (original.unit || null);
+    if (name === original.name && !quantityChanged) return original;
+    // An imported metric conversion is tied to the original ingredient and household amount.
+    const metric = quantityChanged || amount != null ? { metric_amount: null, metric_unit: null } : {};
+    return { ...original, ...metric, name, amount, unit, raw: null };
   });
 }
 function stepFields(parent, kind, steps) {
@@ -620,20 +634,82 @@ function stepFields(parent, kind, steps) {
   (steps.length ? steps : [""]).forEach(add);
   parent.append(rowButton("+ Dodaj krok", () => add().focus()));
 }
-function variantFields(form, kind, variant, steps) {
+function readNutritionValues(fieldset) {
+  return NUTRITION_FIELDS.map(([key]) => [key, fieldset.querySelector('[data-nutrition="' + key + '"]').value]);
+}
+function matchesEstimatedNutrition(values, estimate) {
+  return estimate != null && values.every(([key, value]) => value !== "" && Number(value) === estimate[key]);
+}
+function nutritionEstimateInput(fieldset, servings) {
+  if (!servings.validity.valid || !Number.isSafeInteger(servings.valueAsNumber)) {
+    throw new Error("Podaj prawidłową liczbę porcji.");
+  }
+  const amounts = fieldset.querySelectorAll('[data-field="amount"]');
+  if ([...amounts].some(input => !input.validity.valid)) throw new Error("Sprawdź ilości składników.");
+  return JSON.stringify({ servings: servings.valueAsNumber, ingredients: readIngredients(fieldset) });
+}
+function addNutritionEstimateControls(fieldset, servings, available, updateOrigin) {
+  const message = element("p", "detail-hint", available ? "" : "Aby włączyć, ustaw api_key na serwerze.");
+  message.id = fieldset.dataset.kind + "-nutrition-status";
+  message.setAttribute("role", "status");
+  const button = rowButton("Oszacuj wartości odżywcze z AI", async () => {
+    button.disabled = true;
+    message.textContent = "Szacowanie wartości odżywczych…";
+    try {
+      const input = nutritionEstimateInput(fieldset, servings);
+      const previousValues = JSON.stringify(readNutritionValues(fieldset));
+      const response = await fetch("/api/nutrition/estimate", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: input
+      });
+      const estimate = await response.json();
+      if (!response.ok) throw new Error(estimate.error || "Nie udało się oszacować wartości odżywczych.");
+      if (!fieldset.closest("dialog")?.open) return;
+      if (JSON.stringify(readNutritionValues(fieldset)) !== previousValues || nutritionEstimateInput(fieldset, servings) !== input) {
+        message.textContent = "Dane zmieniły się podczas szacowania. Spróbuj ponownie.";
+        return;
+      }
+      for (const field of fieldset.querySelectorAll("[data-nutrition]")) {
+        field.value = estimate[field.dataset.nutrition];
+      }
+      fieldset.estimatedNutrition = estimate;
+      updateOrigin();
+      message.textContent = "Uzupełniono pola. Zapisz przepis, aby zachować wartości.";
+    } catch (failure) {
+      message.textContent = failure.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  button.disabled = !available;
+  button.setAttribute("aria-describedby", message.id);
+  fieldset.append(button, message);
+}
+function variantFields(form, kind, variant, steps, recipe) {
   const fieldset = element("fieldset", "editor-variant");
   fieldset.dataset.kind = kind;
   fieldset.originalVariant = variant;
+  fieldset.estimatedNutrition = variant.nutrition_estimated ? variant.nutrition : null;
   fieldset.append(element("legend", "", labels[kind]));
   const servings = editorField(fieldset, `${kind}-servings`, "Liczba porcji", variant.servings, "number");
   servings.required = true; servings.min = "1"; servings.step = "1";
   ingredientFields(fieldset, kind, variant.ingredients);
   stepFields(fieldset, kind, variant.steps || steps);
   const nutrition = element("div", "editor-nutrition");
-  for (const [key, title] of [["kcal", "Kalorie (kcal)"], ["protein_g", "Białko (g)"], ["fat_g", "Tłuszcz (g)"], ["carbs_g", "Węglowodany (g)"]]) {
-    const item = element("div"); editorField(item, `${kind}-${key}`, title, variant.nutrition?.[key], "number"); nutrition.append(item);
+  for (const [key, title] of NUTRITION_FIELDS) {
+    const item = element("div");
+    const field = editorField(item, kind + "-" + key, title, variant.nutrition?.[key], "number");
+    field.dataset.nutrition = key;
+    nutrition.append(item);
   }
   fieldset.append(element("p", "detail-hint", "Wartości odżywcze dla wszystkich porcji: wypełnij wszystkie cztery pola albo zostaw wszystkie puste."), nutrition);
+  const origin = element("p", "detail-hint", AI_NUTRITION_LABEL);
+  const updateOrigin = () => {
+    origin.hidden = !matchesEstimatedNutrition(readNutritionValues(fieldset), fieldset.estimatedNutrition);
+  };
+  nutrition.addEventListener("input", updateOrigin);
+  fieldset.append(origin);
+  updateOrigin();
+  if (recipe) addNutritionEstimateControls(fieldset, servings, recipe.nutrition_ai_available, updateOrigin);
   form.append(fieldset);
   return fieldset;
 }
@@ -641,7 +717,7 @@ function readVariant(fieldset, recipe) {
   const kind = fieldset.dataset.kind;
   const original = fieldset.originalVariant;
   const ingredients = readIngredients(fieldset);
-  const values = ["kcal", "protein_g", "fat_g", "carbs_g"].map(key => [key, $(`#${kind}-${key}`).value]);
+  const values = readNutritionValues(fieldset);
   if (values.some(([, value]) => value !== "") && values.some(([, value]) => value === "")) throw new Error("Uzupełnij wszystkie wartości odżywcze lub wyczyść wszystkie cztery pola.");
   const nutrition = values.every(([, value]) => value === "") ? null : Object.fromEntries(values.map(([key, value]) => [key, Number(value)]));
   const steps = [...fieldset.querySelectorAll(".step-editor textarea")].map(input => input.value.trim());
@@ -649,6 +725,7 @@ function readVariant(fieldset, recipe) {
   const unchangedSteps = JSON.stringify(steps) === JSON.stringify(original.steps || recipe?.steps);
   return {
     ...original, servings: Number($(`#${kind}-servings`).value), ingredients, nutrition,
+    nutrition_estimated: matchesEstimatedNutrition(values, fieldset.estimatedNutrition),
     steps: unchangedSteps ? original.steps ?? null : steps
   };
 }
@@ -672,7 +749,7 @@ function addVariantControls(container, recipe) {
         try {
           const original = container.querySelector(`[data-kind="${source.value}"]`);
           const copied = structuredClone(readVariant(original, recipe));
-          const fieldset = variantFields(container, kind, copied, recipe.steps);
+          const fieldset = variantFields(container, kind, copied, recipe.steps, recipe);
           const remove = rowButton(`Usuń dodawany wariant: ${labels[kind]}`, () => {
             fieldset.remove(); refresh(); source.focus();
           });
@@ -709,7 +786,7 @@ function openEditor(recipe = null) {
   const favorite = editorField(form, "edit-favorite", "Ulubiony", "", "checkbox"); favorite.checked = recipe?.user.favorite || false;
   const variants = recipe?.variants || { family: { servings: 1, ingredients: [], nutrition: null } };
   const variantContainer = element("section", "editor-variants"); form.append(variantContainer);
-  for (const [kind, variant] of Object.entries(variants)) variantFields(variantContainer, kind, variant, recipe?.steps || []);
+  for (const [kind, variant] of Object.entries(variants)) variantFields(variantContainer, kind, variant, recipe?.steps || [], recipe);
   if (recipe) addVariantControls(variantContainer, recipe);
   if (!recipe) {
     const label = element("label", "", "Wariant nowego przepisu"); label.htmlFor = "edit-kind";
