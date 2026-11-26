@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import mimetypes
+import os
 import secrets
 import sqlite3
 from functools import partial
@@ -43,6 +44,13 @@ from przepisnik.core.shopping import (
 )
 from przepisnik.errors import StoreError
 from przepisnik.web.config import ServerConfig
+from przepisnik.web.nutrition_ai import (
+    MAX_ESTIMATE_BYTES,
+    NutritionEstimateError,
+    NutritionEstimateRequest,
+    NutritionEstimator,
+    OpenAINutritionEstimator,
+)
 
 if TYPE_CHECKING:
     from socket import socket
@@ -54,6 +62,14 @@ PAGE_SIZE = 24
 MAX_PAGE = 100_000
 MAX_BODY_BYTES = 12_000_000
 MAX_IMAGE_BYTES = 8_000_000
+NUTRITION_ESTIMATE_PATH = "/api/nutrition/estimate"
+API_KEY_ENV = "api_key"
+
+
+class RecipeServer(ThreadingHTTPServer):
+    """Keep the configured estimator scoped to a single server instance."""
+
+    nutrition_estimator: NutritionEstimator | None = None
 
 
 class RecipeHandler(BaseHTTPRequestHandler):
@@ -68,9 +84,20 @@ class RecipeHandler(BaseHTTPRequestHandler):
         data_dir: Path,
         config: ServerConfig,
     ) -> None:
-        """Inject the configured data directory into each request handler."""
+        """Set up the handler with its storage, network settings and optional estimator.
+
+        Args:
+            request: Client connection.
+            client_address: Client host and port.
+            server: Server handling the connection.
+            data_dir: Directory containing recipes and their images.
+            config: Allowed listener addresses and origins.
+        """
         self._data_dir = data_dir
         self._config = config
+        self._nutrition_estimator = (
+            server.nutrition_estimator if isinstance(server, RecipeServer) else None
+        )
         super().__init__(request, client_address, server)
 
     def do_GET(self) -> None:
@@ -140,6 +167,7 @@ class RecipeHandler(BaseHTTPRequestHandler):
                             if combined
                             else None,
                             "can_merge_variants": SharedVariantMerger().can_merge(recipe),
+                            "nutrition_ai_available": self._nutrition_estimator is not None,
                             "shared_sources": [
                                 source.model_dump(mode="json")
                                 for source in self._shared_sources(store, recipe)
@@ -157,7 +185,7 @@ class RecipeHandler(BaseHTTPRequestHandler):
         self._json({"error": "Nie znaleziono przepisu lub pliku."}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
-        """Validate same-origin writes and persist changes in a transaction.
+        """Validate and dispatch same-origin JSON requests.
 
         Returns:
             None: Writes a success response or an appropriate validation error.
@@ -174,10 +202,17 @@ class RecipeHandler(BaseHTTPRequestHandler):
             self._json({"error": "Wymagany format JSON."}, HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
             return
         try:
+            path = urlsplit(self.path).path
+            estimating = path == NUTRITION_ESTIMATE_PATH
             length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= MAX_BODY_BYTES:
+            if not 0 < length <= (MAX_ESTIMATE_BYTES if estimating else MAX_BODY_BYTES):
+                message = (
+                    "Lista składników przekracza limit żądania."
+                    if estimating
+                    else "Formularz przekracza limit 12 MB."
+                )
                 self._json(
-                    {"error": "Formularz przekracza limit 12 MB."},
+                    {"error": message},
                     HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                 )
                 return
@@ -217,7 +252,7 @@ class RecipeHandler(BaseHTTPRequestHandler):
             )
 
     def _write_payload(self, payload: dict[str, object]) -> None:
-        """Dispatch validated JSON writes to their transactional operation.
+        """Dispatch validated JSON to the requested operation.
 
         Args:
             payload: Decoded JSON object from a same-origin request.
@@ -226,6 +261,9 @@ class RecipeHandler(BaseHTTPRequestHandler):
             None: Writes the operation's response.
         """
         path = urlsplit(self.path).path
+        if path == NUTRITION_ESTIMATE_PATH:
+            self._estimate_nutrition(payload)
+            return None
         if path.startswith("/api/recipes/") and path.endswith("/merge-variants"):
             recipe_id = path.removeprefix("/api/recipes/").removesuffix("/merge-variants")
             self._merge_variants(recipe_id, payload)
@@ -272,6 +310,40 @@ class RecipeHandler(BaseHTTPRequestHandler):
             {"id": saved.id, "changed": current is None or saved.updated_at != current.updated_at},
             HTTPStatus.CREATED if creating else HTTPStatus.OK,
         )
+
+    def _estimate_nutrition(self, payload: dict[str, object]) -> None:
+        """Return a draft estimate without opening the recipe store.
+
+        Args:
+            payload: Ingredient quantities and servings from the editor.
+
+        Returns:
+            None: Writes an estimate or a user-facing error.
+        """
+        if self._nutrition_estimator is None:
+            self._json(
+                {"error": f"Szacowanie AI wymaga ustawienia {API_KEY_ENV} na serwerze."},
+                HTTPStatus.SERVICE_UNAVAILABLE,
+            )
+            return None
+        try:
+            request = NutritionEstimateRequest.model_validate(payload)
+        except ValidationError:
+            self._json(
+                {"error": "Sprawdź składniki, ich ilości i liczbę porcji."},
+                HTTPStatus.BAD_REQUEST,
+            )
+            return None
+        try:
+            nutrition = self._nutrition_estimator.estimate(request)
+        except NutritionEstimateError:
+            self._json(
+                {"error": "Nie udało się oszacować wartości odżywczych. Spróbuj ponownie."},
+                HTTPStatus.BAD_GATEWAY,
+            )
+            return None
+        self._json(nutrition.model_dump(mode="json"))
+        return None
 
     def _merge_variants(self, recipe_id: str, payload: dict[str, object]) -> None:
         """Collapse current matching variants and preserve all source references atomically.
@@ -451,13 +523,23 @@ def _summary(recipe: Recipe) -> dict[str, object]:
 
 
 def serve(data_dir: Path, config: ServerConfig) -> None:
-    """Run the browser using explicitly configured network settings."""
+    """Run the web server with instance network settings and optional nutrition AI.
+
+    Args:
+        data_dir: Directory containing the validated instance database and images.
+        config: Listener configuration and allowed browser origins.
+
+    Returns:
+        None: Runs until the server is stopped.
+    """
     if not (data_dir / DATABASE_NAME).is_file():
         raise StoreError("No SQLite database found; run migrate-json before starting the browser")
     with SqliteStore(data_dir) as store:
         store.all()  # Validate data before announcing a running application.
+    api_key = os.environ.get(API_KEY_ENV, "").strip()
     handler = partial(RecipeHandler, data_dir=data_dir.resolve(), config=config)
-    with ThreadingHTTPServer((config.host, config.port), handler) as server:
+    with RecipeServer((config.host, config.port), handler) as server:
+        server.nutrition_estimator = OpenAINutritionEstimator(api_key) if api_key else None
         try:
             server.serve_forever()
         except KeyboardInterrupt:

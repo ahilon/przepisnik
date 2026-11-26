@@ -1,4 +1,4 @@
-﻿# Tests
+# Tests
 
 We use **pytest** with **Playwright** for browser end-to-end (E2E) tests.
 Tests marked `@pytest.mark.sanity` cover basic application functionality.
@@ -135,6 +135,19 @@ the search text cleared, and filter visibility in a short desktop window and on
 mobile. The visibility assertion runs before interacting with the filter, so
 Playwright's automatic scrolling cannot hide a layout regression. These cases
 belong to the full regression suite; the seven PR sanity cases remain unchanged.
+
+## Nutrition estimate tests
+
+Run the HTTP regressions from the checkout with
+`uv run --locked pytest tests/test_nutrition_api.py`. The local server injects
+a provider adapter whose HTTPS transport is stubbed inside pytest. The cases
+exercise disabled capability, draft quantities, explicit save, malformed
+estimates, timeout and quota errors. No API key or credits are needed.
+
+The browser regressions in `e2e/test_nutrition.py` use Playwright context routes
+to supply deterministic estimates. The recipe save still goes to the isolated
+application and SQLite database. These cases also work with the container
+backend and belong to the full browser suite.
 
 ## Record a test
 

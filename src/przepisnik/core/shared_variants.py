@@ -53,7 +53,16 @@ class SharedVariantMerger:
             or recipe.variants[VariantKind.FEMALE].source
             or recipe.variants[VariantKind.MALE].source
         )
-        shared = shared.model_copy(deep=True, update={"source": source})
+        shared = shared.model_copy(
+            deep=True,
+            update={
+                "source": source,
+                "nutrition_estimated": (
+                    shared.nutrition is not None
+                    and any(variant.nutrition_estimated for variant in recipe.variants.values())
+                ),
+            },
+        )
         return recipe.model_copy(update={"variants": {VariantKind.FAMILY: shared}})
 
     def _same_content(self, recipe: Recipe, first: VariantKind, second: VariantKind) -> bool:

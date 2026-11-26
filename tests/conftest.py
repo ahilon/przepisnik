@@ -6,7 +6,6 @@ from contextlib import closing
 from functools import partial
 from http import HTTPStatus
 from http.client import HTTPConnection
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 
@@ -21,7 +20,8 @@ from przepisnik.core.database import SqliteStore
 from przepisnik.core.migration import migrate_json
 from przepisnik.core.models import ImageData, Recipe
 from przepisnik.web.config import ServerConfig
-from przepisnik.web.server import RecipeHandler
+from przepisnik.web.nutrition_ai import NutritionEstimator
+from przepisnik.web.server import RecipeHandler, RecipeServer
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -89,12 +89,23 @@ def shared_recipe(recipe_data: Path) -> Recipe:
 
 
 @pytest.fixture
-def app_url(recipe_data: Path, pytestconfig: pytest.Config) -> Iterator[str]:
+def nutrition_estimator() -> NutritionEstimator | None:
+    """Keep external estimation disabled by default, regardless of local credentials."""
+    return None
+
+
+@pytest.fixture
+def app_url(
+    recipe_data: Path,
+    pytestconfig: pytest.Config,
+    nutrition_estimator: NutritionEstimator | None,
+) -> Iterator[str]:
     """Serve disposable data using the explicitly selected backend.
 
     Args:
         recipe_data: This test's isolated SQLite database and photos.
         pytestconfig: Settings including the optional prebuilt container image.
+        nutrition_estimator: Optional offline estimator supplied by a test.
 
     Yields:
         str: URL of the healthy application instance.
@@ -107,9 +118,10 @@ def app_url(recipe_data: Path, pytestconfig: pytest.Config) -> Iterator[str]:
             yield url
         return
     handler = partial(RecipeHandler, data_dir=recipe_data, config=ServerConfig())
-    with ThreadingHTTPServer((IPV4_LOOPBACK, 0), handler) as server:
+    with RecipeServer((IPV4_LOOPBACK, 0), handler) as server:
         config = ServerConfig(port=server.server_port)
         server.RequestHandlerClass = partial(RecipeHandler, data_dir=recipe_data, config=config)
+        server.nutrition_estimator = nutrition_estimator
         thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
         thread.start()
         try:
