@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [1.15.1] - Unreleased
+
+- Keep the top tabs for meal times and use the side filter to find soups by
+  dish type.
+
 ## [1.15.0] - Unreleased
 
 - Add Kucharz AI, an optional OpenAI chat for drafting, organizing and revising

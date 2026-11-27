@@ -190,18 +190,36 @@ def test_export_prints_only_products_to_buy(app_page: Page) -> None:
     expect(page.locator("#shopping")).to_be_hidden()
 
 
-def test_soup_tab_filters_by_dish_type(app_page: Page) -> None:
-    """Use the soup shortcut tab as a dish filter separate from meal times."""
+def test_meal_tabs_and_dish_filter_are_separate(app_page: Page) -> None:
+    """Keep dish types in the side filter and meal selection in the navigation."""
     page = app_page
-    soups = page.get_by_role("button", name="Zupy", exact=True)
-    soups.click()
-    expect(soups).to_have_attribute("aria-pressed", "true")
-    expect(page.locator("#dish")).to_have_value("soup")
-    expect(page).to_have_url(re.compile(r"dish=soup"))
-    page.get_by_role("button", name="Obiady", exact=True).click()
-    expect(soups).to_have_attribute("aria-pressed", "false")
-    expect(page.locator("#dish")).to_have_value("soup")
-    page.get_by_role("button", name="Wszystko", exact=True).click()
-    expect(page.locator("#dish")).to_have_value("")
-    page.locator("#dish").select_option("soup")
-    expect(soups).to_have_attribute("aria-pressed", "true")
+    meal_tabs = page.get_by_role("navigation", name="Pora posiłku")
+    expect(meal_tabs.get_by_role("button")).to_have_text(
+        ["Wszystko", "Śniadania", "Obiady", "Kolacje", "Przekąski"]
+    )
+    dishes = page.get_by_role("complementary", name="Filtry przepisów").get_by_label(
+        "Rodzaj potrawy", exact=True
+    )
+    soup = page.get_by_role("heading", name="Zupa kokosowa z tofu, limonką i makaronem ryżowym")
+    chicken = page.get_by_role(
+        "heading", name="Kurczak w łagodnym sosie pomidorowo-maślanym z ryżem"
+    )
+    oatmeal = page.get_by_role("heading", name="Waniliowa owsianka z malinami, bananem i orzechami")
+
+    lunch = meal_tabs.get_by_role("button", name="Obiady", exact=True)
+    lunch.click()
+    expect(chicken).to_be_visible()
+    dishes.select_option(label="Zupa")
+    expect(page).to_have_url(re.compile(r"[?&]dish=soup(?:&|$)"))
+    expect(lunch).to_have_attribute("aria-pressed", "true")
+    expect(soup).to_be_visible()
+    expect(chicken).to_have_count(0)
+
+    breakfast = meal_tabs.get_by_role("button", name="Śniadania", exact=True)
+    breakfast.click()
+    expect(breakfast).to_have_attribute("aria-pressed", "true")
+    expect(dishes).to_have_value("soup")
+    expect(page.locator("#empty")).to_be_visible()
+    dishes.select_option(label="Wszystkie rodzaje")
+    expect(oatmeal).to_be_visible()
+    expect(page).not_to_have_url(re.compile(r"[?&]dish="))

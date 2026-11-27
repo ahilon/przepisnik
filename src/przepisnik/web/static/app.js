@@ -223,15 +223,8 @@ async function loadRecipes() {
 }
 function refresh() { state.page = 1; loadRecipes(); }
 function updateControls() {
-  const dishTab = state.meal ? "" : $("#dish").value;
-  document.querySelectorAll("[data-dish-tab]").forEach(button => {
-    const active = button.dataset.dishTab === dishTab;
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
-  const dishTabActive = Boolean(document.querySelector("[data-dish-tab].active"));
   document.querySelectorAll("[data-meal]").forEach(button => {
-    const active = !dishTabActive && button.dataset.meal === state.meal;
+    const active = button.dataset.meal === state.meal;
     button.classList.toggle("active", active);
     button.setAttribute("aria-pressed", String(active));
   });
@@ -496,12 +489,6 @@ $("#search").addEventListener("input", () => { clearTimeout(searchTimer); search
 document.querySelectorAll("[data-meal]").forEach(button => button.addEventListener("click", () => {
   state.meal = button.dataset.meal;
   if (state.meal && state.collection === "uncategorized") state.collection = "all";
-  if (!state.meal && document.querySelector(`[data-dish-tab="${CSS.escape($("#dish").value)}"]`)) $("#dish").value = "";
-  updateControls(); refresh();
-}));
-document.querySelectorAll("[data-dish-tab]").forEach(button => button.addEventListener("click", () => {
-  state.meal = "";
-  $("#dish").value = button.dataset.dishTab;
   updateControls(); refresh();
 }));
 document.querySelectorAll("[data-collection]").forEach(button => button.addEventListener("click", () => {
