@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [1.15.0] - Unreleased
+
+- Add Kucharz AI, an optional OpenAI chat for drafting, organizing and revising
+  recipes before saving. Drafts combine repeated ingredients and label estimated
+  calories per serving.
+- Read the OpenAI project key from `openai_api_key` and display the remaining
+  shared budget in the chat. Try the feature with disposable demo data.
+
 ## [1.14.0] - Unreleased
 
 - Estimate calories and macronutrients for the current recipe variant in the

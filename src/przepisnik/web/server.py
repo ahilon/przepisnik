@@ -16,6 +16,7 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, urlsplit
+from uuid import UUID
 
 from pydantic import ValidationError
 
@@ -43,6 +44,8 @@ from przepisnik.core.shopping import (
     save_shopping_list,
 )
 from przepisnik.errors import StoreError
+from przepisnik.web.chef import MAX_AI_BODY, OPENAI_API_KEY_ENV, Chef, configured_openai_key
+from przepisnik.web.chef_ledger import ChefError, ChefLedger
 from przepisnik.web.config import ServerConfig
 from przepisnik.web.nutrition_ai import (
     MAX_ESTIMATE_BYTES,
@@ -63,7 +66,7 @@ MAX_PAGE = 100_000
 MAX_BODY_BYTES = 12_000_000
 MAX_IMAGE_BYTES = 8_000_000
 NUTRITION_ESTIMATE_PATH = "/api/nutrition/estimate"
-API_KEY_ENV = "api_key"
+LEGACY_NUTRITION_API_KEY_ENV = "api_key"
 
 
 class RecipeServer(ThreadingHTTPServer):
@@ -124,10 +127,14 @@ class RecipeHandler(BaseHTTPRequestHandler):
             "/app.css": "app.css",
             "/app.js": "app.js",
             "/shopping.js": "shopping.js",
+            "/chef.js": "chef.js",
         }
         if location.path in assets:
             self._file(STATIC_DIR / assets[location.path])
             return
+        if location.path == "/api/chef":
+            self._json(Chef(self._data_dir).status())
+            return None
         if location.path == "/api/version":
             self._json({"version": version("przepisnik")})
             return
@@ -205,6 +212,12 @@ class RecipeHandler(BaseHTTPRequestHandler):
             path = urlsplit(self.path).path
             estimating = path == NUTRITION_ESTIMATE_PATH
             length = int(self.headers.get("Content-Length", "0"))
+            if path.startswith("/api/chef/") and length > MAX_AI_BODY:
+                self._json(
+                    {"error": "Za długie zamówienie Kucharza."},
+                    HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+                )
+                return None
             if not 0 < length <= (MAX_ESTIMATE_BYTES if estimating else MAX_BODY_BYTES):
                 message = (
                     "Lista składników przekracza limit żądania."
@@ -220,6 +233,8 @@ class RecipeHandler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError("Invalid payload")
             self._write_payload(payload)
+        except ChefError as exc:
+            self._json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except ShoppingConflictError:
             self._json(
                 {
@@ -234,6 +249,12 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 HTTPStatus.CONFLICT,
             )
         except (ValueError, KeyError, TypeError):
+            if urlsplit(self.path).path.startswith("/api/chef/"):
+                self._json(
+                    {"error": "Sprawdź treść zamówienia, zadanie i liczbę porcji."},
+                    HTTPStatus.BAD_REQUEST,
+                )
+                return None
             if urlsplit(self.path).path == "/api/shopping-list":
                 self._json(
                     {"error": "Sprawdź nazwy produktów, ilości i jednostki na liście."},
@@ -264,6 +285,10 @@ class RecipeHandler(BaseHTTPRequestHandler):
         if path == NUTRITION_ESTIMATE_PATH:
             self._estimate_nutrition(payload)
             return None
+        if path.startswith("/api/chef/"):
+            chef = Chef(self._data_dir)
+            self._json(chef.run(path.removeprefix("/api/chef/"), payload))
+            return None
         if path.startswith("/api/recipes/") and path.endswith("/merge-variants"):
             recipe_id = path.removeprefix("/api/recipes/").removesuffix("/merge-variants")
             self._merge_variants(recipe_id, payload)
@@ -273,13 +298,34 @@ class RecipeHandler(BaseHTTPRequestHandler):
             with SqliteStore(self._data_dir) as store, store.transaction():
                 shopping = save_shopping_list(store, proposed)
             self._json(shopping.model_dump(mode="json"))
-            return
+            return None
+        self._save_recipe(path, payload)
+        return None
+
+    def _save_recipe(self, path: str, payload: dict[str, object]) -> None:
+        """Persist a recipe edit or a new recipe, including an accepted AI draft.
+
+        Args:
+            path: Application-relative recipe route.
+            payload: Decoded, same-origin request body.
+
+        Returns:
+            None: Writes the result of the recipe transaction.
+        """
         creating = path == "/api/recipes"
         if not creating and not path.startswith("/api/recipes/"):
             self._json({"error": "Nie znaleziono adresu."}, HTTPStatus.NOT_FOUND)
             return
         image = _uploaded_image(payload.get("upload"))
+        draft_id = (
+            UUID(str(payload["chef_draft"])).hex if creating and "chef_draft" in payload else None
+        )
         with SqliteStore(self._data_dir) as store, store.transaction():
+            if draft_id:
+                identity = f"chef-{draft_id}"
+                if store.get(identity):
+                    self._json({"id": identity, "changed": False})
+                    return None
             current = None if creating else store.get(path.removeprefix("/api/recipes/"))
             if not creating and current is None:
                 self._json({"error": "Nie znaleziono przepisu."}, HTTPStatus.NOT_FOUND)
@@ -304,6 +350,11 @@ class RecipeHandler(BaseHTTPRequestHandler):
                 raise ValueError("Unexpected fields")
             original = current.model_dump() if current else {}
             identity = current.id if current else f"recipe-{secrets.token_hex(8)}"
+            if draft_id:
+                identity = f"chef-{draft_id}"
+                original = Recipe.model_validate_json(
+                    ChefLedger(self._data_dir).draft(draft_id)
+                ).model_dump()
             recipe = Recipe.model_validate({**original, **fields, "id": identity})
             saved = store.save(recipe, image)
         self._json(
@@ -322,7 +373,7 @@ class RecipeHandler(BaseHTTPRequestHandler):
         """
         if self._nutrition_estimator is None:
             self._json(
-                {"error": f"Szacowanie AI wymaga ustawienia {API_KEY_ENV} na serwerze."},
+                {"error": f"Szacowanie AI wymaga ustawienia {OPENAI_API_KEY_ENV} na serwerze."},
                 HTTPStatus.SERVICE_UNAVAILABLE,
             )
             return None
@@ -536,7 +587,7 @@ def serve(data_dir: Path, config: ServerConfig) -> None:
         raise StoreError("No SQLite database found; run migrate-json before starting the browser")
     with SqliteStore(data_dir) as store:
         store.all()  # Validate data before announcing a running application.
-    api_key = os.environ.get(API_KEY_ENV, "").strip()
+    api_key = configured_openai_key() or os.environ.get(LEGACY_NUTRITION_API_KEY_ENV, "").strip()
     handler = partial(RecipeHandler, data_dir=data_dir.resolve(), config=config)
     with RecipeServer((config.host, config.port), handler) as server:
         server.nutrition_estimator = OpenAINutritionEstimator(api_key) if api_key else None

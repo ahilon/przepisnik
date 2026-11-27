@@ -8,6 +8,7 @@ services:
     environment:
       PRZEPISNIK_DATA: /data
       PRZEPISNIK_CONFIG: /config/server.toml
+      openai_api_key: ${openai_api_key:-}
       api_key: ${api_key:-}
     volumes:
       - instance-data:/data

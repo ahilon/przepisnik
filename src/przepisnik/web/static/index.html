@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/app.css">
   <script src="/app.js" defer></script>
   <script src="/shopping.js" defer></script>
+  <script src="/chef.js" defer></script>
 </head>
 <body>
   <div class="layout">
@@ -75,6 +76,37 @@
         <button class="primary" type="submit">Dodaj produkt</button>
       </form>
     </div>
+  </dialog>
+  <button id="chef-tab" type="button" aria-label="Kucharz AI"
+          aria-haspopup="dialog" aria-controls="chef" title="Kucharz AI" hidden>
+    <span class="chef-hat" aria-hidden="true"></span>
+    <span>AI</span>
+  </button>
+  <dialog id="chef" aria-labelledby="chef-title">
+    <header class="chef-header">
+      <h2 id="chef-title">Kucharz AI</h2>
+      <button id="chef-discard" type="button" class="link-button" hidden>Nowa rozmowa</button>
+      <button id="chef-close" type="button" aria-label="Zamknij panel">×</button>
+    </header>
+    <div id="chef-log" role="log" aria-label="Rozmowa z Kucharzem AI">
+      <p id="chef-intro" class="chef-bubble">Opisz, co chcesz ugotować, albo wklej przepis do uporządkowania.</p>
+    </div>
+    <div id="chef-actions" class="chef-actions" hidden>
+      <button id="chef-edit" type="button" class="primary">Dodaj do przepisów</button>
+      <button id="chef-image" type="button" class="secondary">Wygeneruj ilustrację</button>
+    </div>
+    <footer class="chef-footer">
+      <p id="chef-status" role="status"></p>
+      <form id="chef-form">
+        <textarea id="chef-text" aria-label="Wiadomość do Kucharza AI" required maxlength="3500"
+                  rows="2" autofocus placeholder="Zaproponuj szybki obiad z kurczakiem na 2 porcje…"></textarea>
+        <button type="submit" class="primary">Wyślij</button>
+      </form>
+      <p class="chef-budget-note">
+        <span>Budżet AI do 1 USD · Wiadomości trafiają do OpenAI.</span>
+        <span id="chef-budget"></span>
+      </p>
+    </footer>
   </dialog>
   <section id="shopping-print" class="shopping-print" aria-hidden="true"></section>
 </body>
