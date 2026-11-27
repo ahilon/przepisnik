@@ -169,6 +169,11 @@ switch variants without modifying stored data. Filters are preserved in the URL.
 The layout adapts to smaller screens. Use **Dodaj przepis** to create a recipe,
 or **Edytuj przepis** in its details to edit ingredients, preparation, nutrition,
 categories, tags, favorites and notes. Existing variants and source metadata are retained.
+
+With an OpenAI project key in `openai_api_key`, **Kucharz AI** opens a recipe
+chat. Describe a dish or paste an existing recipe, ask for changes, then review
+the draft before adding it to the collection. See [Kucharz AI setup and local demo](SETUP.md#kucharz-ai-optional-trusted-home-instance).
+
 The recipe editor accepts hours and minutes separately, stored as total minutes.
 Each ingredient has its own name, quantity and unit fields; units can be selected
 or typed freely. Preparation steps have separate text fields and can be reordered

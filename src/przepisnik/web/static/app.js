@@ -649,7 +649,7 @@ function nutritionEstimateInput(fieldset, servings) {
   return JSON.stringify({ servings: servings.valueAsNumber, ingredients: readIngredients(fieldset) });
 }
 function addNutritionEstimateControls(fieldset, servings, available, updateOrigin) {
-  const message = element("p", "detail-hint", available ? "" : "Aby włączyć, ustaw api_key na serwerze.");
+  const message = element("p", "detail-hint", available ? "" : "Aby włączyć, ustaw openai_api_key na serwerze.");
   message.id = fieldset.dataset.kind + "-nutrition-status";
   message.setAttribute("role", "status");
   const button = rowButton("Oszacuj wartości odżywcze z AI", async () => {
@@ -766,10 +766,15 @@ function addVariantControls(container, recipe) {
   container.before(controls);
   refresh();
 }
-function openEditor(recipe = null) {
+function openEditor(recipe = null, chefDraft = null) {
   editingRecipe = recipe;
   const form = $("#recipe-form"); form.replaceChildren();
-  $("#editor-title").textContent = recipe ? "Edytuj przepis" : "Dodaj przepis";
+  $("#editor-title").textContent = chefDraft ? "Zatwierdź przepis Kucharza" : recipe ? "Edytuj przepis" : "Dodaj przepis";
+  form.chefDraft = chefDraft;
+  if (chefDraft) {
+    form.append(element("p", "detail-hint", "Sprawdź składniki i kroki. Możesz je poprawić przed dodaniem przepisu."));
+    recipe.notes.forEach(note => form.append(element("p", "detail-hint", note)));
+  }
   editorField(form, "edit-title", "Nazwa przepisu", recipe?.title).required = true;
   categoryFields(form, "edit-meals", "Pora posiłku", recipe?.effective_meal_types || [], ["breakfast", "lunch", "dinner", "snack"]);
   categoryFields(form, "edit-dishes", "Rodzaj potrawy", recipe?.effective_dish_types || [], ["main", "soup", "salad", "cake", "bread", "dessert", "other"]);
@@ -807,7 +812,7 @@ function openEditor(recipe = null) {
   const footer = element("div", "editor-footer");
   const error = element("p", "error"); error.id = "editor-error"; error.hidden = true; error.setAttribute("role", "alert");
   const actions = element("div", "editor-actions");
-  const save = element("button", "primary", "Zapisz przepis"); save.type = "submit";
+  const save = element("button", "primary", chefDraft ? "Dodaj do przepisów" : "Zapisz przepis"); save.type = "submit";
   const cancel = element("button", "secondary", "Anuluj"); cancel.type = "button";
   cancel.addEventListener("click", () => $("#editor").close());
   actions.append(save, cancel); footer.append(error, actions); form.append(footer);
@@ -845,7 +850,7 @@ $("#recipe-form").addEventListener("submit", async event => {
     if (($("#edit-hours").value !== "" || $("#edit-minutes").value !== "") && (!Number.isSafeInteger(preparationMinutes) || preparationMinutes <= 0)) throw new Error("Czas przygotowania musi wynosić co najmniej minutę lub pozostać pusty.");
     const recipe = {
       title: $("#edit-title").value.trim(),
-      steps: editingRecipe?.steps || Object.values(variants)[0].steps,
+      steps: (form.chefDraft && Object.values(variants)[0].steps) || editingRecipe?.steps || Object.values(variants)[0].steps,
       variants,
       user: { ...editingRecipe?.user, favorite: $("#edit-favorite").checked,
         notes: $("#edit-notes").value, tags: $("#edit-tags-box").tags(),
@@ -854,12 +859,19 @@ $("#recipe-form").addEventListener("submit", async event => {
     };
     const file = $("#edit-image").files[0];
     if (file && file.size > 8000000) throw new Error("Zdjęcie przekracza limit 8 MB.");
-    const response = await fetch(editingRecipe ? `/api/recipes/${encodeURIComponent(editingRecipe.id)}` : "/api/recipes", {
+    const chef = form.chefDraft;
+    if (chef) {
+      recipe.notes = [...editingRecipe.notes];
+      if (chef.jpeg && !file) recipe.notes.push("Ilustracja wygenerowana przez Kucharza AI.");
+    }
+    const response = await fetch(editingRecipe && !chef ? `/api/recipes/${encodeURIComponent(editingRecipe.id)}` : "/api/recipes", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipe, updated_at: editingRecipe?.updated_at, upload: file ? await readUpload(file) : null })
+      body: JSON.stringify({ recipe, updated_at: editingRecipe?.updated_at, upload: file ? await readUpload(file) : chef?.jpeg || null,
+        ...(chef ? {chef_draft: chef.id} : {}) })
     });
     const body = await response.json(); if (!response.ok) throw new Error(body.error || "Nie udało się zapisać przepisu.");
     $("#editor").close();
+    if (chef) document.dispatchEvent(new Event("chef-saved"));
     await loadRecipes(); await openRecipe(body.id);
     if (body.changed === false) {
       const notice = element("p", "detail-hint", "Brak zmian — przepis pozostał bez zmian.");

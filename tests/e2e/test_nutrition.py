@@ -32,7 +32,7 @@ def test_estimate_button_is_disabled_without_key(app_page: Page, shared_recipe: 
     button = variant.get_by_role("button", name=_BUTTON)
     expect(button).to_be_visible()
     expect(button).to_be_disabled()
-    expect(button).to_have_accessible_description("Aby włączyć, ustaw api_key na serwerze.")
+    expect(button).to_have_accessible_description("Aby włączyć, ustaw openai_api_key na serwerze.")
     return None
 
 
